@@ -3,16 +3,8 @@
 This repository contains the official implementation of FRG as described in the paper: Learning Fair Representations with High-confidence Guarantees (submitted to ICLR 2024).
 
 ## Requirements
-* `python >= 3.7`, `PyTorch >= 1.4`, please refer to their official websites for installation details.
-* Other dependencies:
-```{bash}
-pandas==1.5.3
-tqdm==4.65.0
-numpy==1.23.5
-```
-Refer to `environment.yml` for more details.
+We have tested our code on `Python 3.9` with `PyTorch 1.12.0`, and `CUDA 11.4`. Please follow the following steps to create a virtual environment and install the required packages. Please refer to `environment.yml` for more details.
 
-We have tested our code on `Python 3.9` with `PyTorch 1.12.0`, and `CUDA 11.4`. Please follow the following steps to create a virtual environment and install the required packages.
 
 Create a virtual environment:
 ```
