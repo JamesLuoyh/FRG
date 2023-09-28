@@ -1,7 +1,6 @@
 # Learning Fair Representations with High-confidence Guarantees (FRG)
 
-This repository contains the official implementation of FRG as described in the paper: Learning Fair Representations with High-confidence Guarantees (submitted to ICLR 2024)
-This is adapted from source code repository for a library used to run experiments that implement [Seldonian](https://seldonian.cs.umass.edu/) algorithms. Experiments enable you to evaluate the performance and safety of Seldonian algorithms and compare them to baseline models. 
+This repository contains the official implementation of FRG as described in the paper: Learning Fair Representations with High-confidence Guarantees (submitted to ICLR 2024).
 
 ## Requirements
 * `python >= 3.7`, `PyTorch >= 1.4`, please refer to their official websites for installation details.
@@ -69,3 +68,6 @@ usage: Interface for FRG
   --epsilon epsilon as describe in the paper
   --psi  the desired upper bound on the mutual information \Tilde{I}_1(Z;S) as describe in the paper
 ```
+
+## Acknowledgement
+This is adapted from two source code repositories, [Seldonian Engine](https://github.com/seldonian-toolkit/Engine/) and [Seldonian Experiments](https://github.com/seldonian-toolkit/Experiments). They are libraries that implement [Seldonian](https://seldonian.cs.umass.edu/) algorithms. We thank the authors for sharing their code.
