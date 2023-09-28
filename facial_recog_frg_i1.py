@@ -21,18 +21,12 @@ savename_features = '../face_recog/features.pkl'
 savename_gender_labels = '../face_recog/gender_labels.pkl'
 savename_age_labels = '../face_recog/age_labels.pkl'
 savename_sensitive_attrs = '../face_recog/sensitive_attrs.pkl'
-save_dir = "../SeldonianExperimentSpecs/vfae/spec/"
+save_dir = "./SeldonianExperimentSpecs/vfae/spec/"
 features = load_pickle(savename_features)
 age_labels = load_pickle(savename_age_labels)
 gender_labels = load_pickle(savename_gender_labels)
 sensitive_attrs = load_pickle(savename_sensitive_attrs)
-print(features.shape)
-print(sensitive_attrs.shape)
-# print(labels.shape)
-# assert len(features) == N
-# assert len(gender_labels) == N
-# assert len(age_labels) == N
-# assert len(sensitive_attrs) == N
+
 frac_data_in_safety = 0.5
 sensitive_col_names = ['0','1', '2', '3', '4']
 
@@ -50,12 +44,11 @@ dataset = SupervisedDataSet(
     num_datapoints=N,
     meta_information=meta_information)
 regime='supervised_learning'
-# epsilon = 0.4
-# deltas = [0.1]
-epsilon = 0.03#1.18
+
+psi = 1.18
 deltas = [0.3]
 
-constraint_strs = [f'VAE <= {epsilon}']
+constraint_strs = [f'VAE <= {psi}']
 
 print("Making parse trees for constraint(s):")
 print(constraint_strs," with deltas: ", deltas)
@@ -77,7 +70,7 @@ model = PytorchFacialVAE(device, **{"x_dim": features.shape[1],
         "mi_version": 1
         })
         
-lambda_init = 1.0
+lambda_init = 5.0
 initial_solution_fn = model.get_model_params
 spec = SupervisedSpec(
     dataset=dataset,
@@ -92,13 +85,13 @@ spec = SupervisedSpec(
     optimizer='adam',
     optimization_hyperparams={
         'lambda_init'   : np.array([lambda_init]),
-        'alpha_theta'   : 1e-3,
-        'alpha_lamb'    : 1e-2,
+        'alpha_theta'   : 1e-4,
+        'alpha_lamb'    : 1e-3,
         'beta_velocity' : 0.6,
         'beta_rmsprop'  : 0.95,
         'use_batches'   : True,
         'batch_size'    : 237, #237
-        'n_epochs'      : 80,
+        'n_epochs'      : 40,
         'gradient_library': "autograd",
         'hyper_search'  : None,
         'verbose'       : True,
@@ -107,7 +100,7 @@ spec = SupervisedSpec(
         'downstream_epochs' : 10,
         'y_dim'             : 1,
         'z_dim'             : z_dim,
-        'epsilon'           : epsilon,
+        'epsilon'           : psi,
         'n_adv_rounds'      : 3,
         's_dim'             : sensitive_attrs.shape[1]
     },
@@ -115,7 +108,7 @@ spec = SupervisedSpec(
     batch_size_safety=237
 )
 spec_save_name = os.path.join(
-  save_dir, f"unsupervised_cnn_vfae_1_mutual_information_{epsilon}.pkl"
+  save_dir, f"unsupervised_cnn_vfae_mutual_information_{psi}.pkl"
 )
 save_pickle(spec_save_name, spec)
 print(f"Saved Spec object to: {spec_save_name}")

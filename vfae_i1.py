@@ -31,7 +31,7 @@ if __name__ == "__main__":
         bs = 150
         s_num=2
         nce_size=50
-        n_epochs = 150
+        n_epochs = 60
         lr = 1e-4
     elif dataname == GERMAN: # Not used 
         data_pth = "../SeldonianEngine/static/datasets/supervised/german_credit/vfae_german.csv"
@@ -60,8 +60,8 @@ if __name__ == "__main__":
         metadata_filename=metadata_pth,
         file_type='csv')
 
-    epsilon = 0.32
-    constraint_strs = [f'VAE <= {epsilon}']
+    psi = 0.32
+    constraint_strs = [f'VAE <= {psi}']
     deltas = [0.1] 
     columns = ["M", "F"]
     parse_trees = make_parse_trees_from_constraints(
@@ -95,9 +95,9 @@ if __name__ == "__main__":
         optimization_technique='gradient_descent',
         optimizer='adam',
         optimization_hyperparams={
-            'lambda_init'   : np.array([0.0]),
+            'lambda_init'   : np.array([0.2]),
             'alpha_theta'   : 1e-4,
-            'alpha_lamb'    : 1e-3,
+            'alpha_lamb'    : 1e-4,
             'beta_velocity' : 0.9,
             'beta_rmsprop'  : 0.95,
             'use_batches'   : True,
@@ -109,7 +109,7 @@ if __name__ == "__main__":
             'x_dim'         : x_dim,
             'z_dim'         : z_dim,
             'lr'            : lr,
-            'epsilon'       : epsilon,
+            'epsilon'       : psi,
             'downstream_lr' : 1e-4,
             'downstream_bs'     : 100,
             'downstream_epochs' : 5,
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         batch_size_safety=200
     )
     spec_save_name = os.path.join(
-        save_dir, f"vfae_unsupervised_{dataname}_mutual_information_{epsilon}.pkl"
+        save_dir, f"vfae_unsupervised_{dataname}_mutual_information_{psi}.pkl"
     )
     save_pickle(spec_save_name, spec)
     print(f"Saved Spec object to: {spec_save_name}")
