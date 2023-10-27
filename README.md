@@ -1,6 +1,6 @@
 # Learning Fair Representations with High-confidence Guarantees (FRG)
 
-This repository contains the official implementation of FRG as described in the paper: Learning Fair Representations with High-confidence Guarantees (submitted to ICLR 2024).
+This repository contains the official implementation of FRG as described in the paper: Learning Fair Representations with High-confidence Guarantees (In submission).
 
 ## Requirements
 We have tested our code on `Python 3.9` with `PyTorch 1.12.0`, and `CUDA 11.4`. Please follow the following steps to create a virtual environment and install the required packages. Please refer to `environment.yml` for more details.
