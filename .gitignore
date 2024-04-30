@@ -1,0 +1,10 @@
+# ignore specs
+SeldonianExperimentSpecs/
+
+# ignore logs
+logs/
+
+# ignore pycache
+*.pyc
+
+
