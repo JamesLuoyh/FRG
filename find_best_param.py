@@ -1,8 +1,8 @@
 import pandas as pd
 
-# df = pd.read_csv('./SeldonianExperimentResults/lmifr_backup.csv')
-# df = pd.read_csv('./SeldonianExperimentResults/ablation_backup.csv')
-df = pd.read_csv('./SeldonianExperimentResults/cnn_ablation.csv')
+# df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_backup.csv')
+# df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/ablation_backup.csv')
+df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cnn_ablation.csv')
 
 import matplotlib.pyplot as plt
 import numpy as np

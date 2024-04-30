@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
     performance_metric="auc_dp"
 
-    results_base_dir = f"./SeldonianExperimentResults"
+    results_base_dir = f"/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults"
     vfae_example(
         spec_rootdir="./SeldonianExperimentSpecs/vfae/spec",
         results_base_dir=results_base_dir,

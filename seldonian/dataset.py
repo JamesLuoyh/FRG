@@ -20,7 +20,8 @@ class DataSetLoader():
 	def load_supervised_dataset(self,
 		filename,
 		metadata_filename,
-		file_type='csv'):
+		file_type='csv',
+		shuffle='true'):
 		""" Create SupervisedDataSet object from file
 
 		:param filename: The file
@@ -46,6 +47,8 @@ class DataSetLoader():
 
 		if file_type.lower() == 'csv':
 			df = pd.read_csv(filename,header=None,names=all_col_names)
+			if shuffle:
+				df = df.sample(frac=1)
 			# separate out features, labels, and sensitive attrs
 			features = df.loc[:,feature_col_names].values
 			labels = np.squeeze(df.loc[:,label_col_names].values) # converts shape from (N,1) -> (N,) if only a single label column.

@@ -12,6 +12,7 @@ from seldonian.safety_test.safety_test import SafetyTest
 from seldonian.models import objectives
 from seldonian.models.pytorch_vae import PytorchVFAE
 from seldonian.models.pytorch_cnn_vfae import PytorchFacialVAE
+from seldonian.models.pytorch_advdp import PytorchADVDP
 import torch
 class SeldonianAlgorithm():
 	def __init__(self,spec):
@@ -172,7 +173,7 @@ class SeldonianAlgorithm():
 			S_s = self.dataset.sensitive_attrs[n_candidate:]
 			return E_c,E_s,S_c,S_s,n_candidate,n_safety
 
-	def candidate_selection(self,write_logfile=False):
+	def candidate_selection(self,write_logfile=False, logfilename=None):
 		""" Create the candidate selection object 
 
 		:param write_logfile: Whether to write out a pickle file
@@ -188,7 +189,8 @@ class SeldonianAlgorithm():
 			optimizer=self.spec.optimizer,
 			initial_solution=self.initial_solution,
 			regime=self.regime,
-			write_logfile=write_logfile)
+			write_logfile=write_logfile,
+			logfilename=logfilename)
 
 		cs = CandidateSelection(**cs_kwargs,**self.spec.regularization_hyperparams)
 
@@ -241,7 +243,7 @@ class SeldonianAlgorithm():
 
 		return self.initial_solution
 
-	def run(self,write_cs_logfile=False,debug=False):
+	def run(self,write_cs_logfile=False,debug=False,logfilename=None):
 		"""
 		Runs seldonian algorithm using spec object
 
@@ -255,13 +257,15 @@ class SeldonianAlgorithm():
 		:rtype: Tuple 
 		"""
 		self.set_initial_solution() # sets self.initial_solution so it can be used in candidate selection 
-		if isinstance(self.model, PytorchVFAE) or isinstance(self.model, PytorchFacialVAE):
+		if isinstance(self.model, PytorchVFAE) or \
+		isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP):
 			pu = np.mean(self.candidate_sensitive_attrs, axis=0)
 			print("Estimated C2 (Entropy) Candidate:", pu)
 			self.model.set_pu(pu)
 		candidate_solution = self.run_candidate_selection(
 			write_logfile=write_cs_logfile,
-			debug=debug)
+			debug=debug,
+			logfilename=logfilename)
 		
 		if type(candidate_solution) == str and candidate_solution == 'NSF':
 			# can happen if nan or inf appeared in theta during optimization
@@ -270,7 +274,8 @@ class SeldonianAlgorithm():
 			return passed_safety,solution
 			
 		# Safety test
-		if isinstance(self.model, PytorchVFAE) or isinstance(self.model, PytorchFacialVAE):
+		if isinstance(self.model, PytorchVFAE) or \
+			isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP):
 			pu = np.mean(self.safety_sensitive_attrs, axis=0)
 			print("Estimated C2 (Entropy) Candidate:", pu)
 			self.model.set_pu(pu)
@@ -282,8 +287,8 @@ class SeldonianAlgorithm():
 
 		return passed_safety, solution
 
-	def run_candidate_selection(self,write_logfile=False,debug=False):
-		cs = self.candidate_selection(write_logfile=write_logfile)
+	def run_candidate_selection(self,write_logfile=False,debug=False,logfilename=None):
+		cs = self.candidate_selection(write_logfile=write_logfile, logfilename=logfilename)
 		candidate_solution = cs.run(**self.spec.optimization_hyperparams,
 			use_builtin_primary_gradient_fn=self.spec.use_builtin_primary_gradient_fn,
 			custom_primary_gradient_fn=self.spec.custom_primary_gradient_fn,

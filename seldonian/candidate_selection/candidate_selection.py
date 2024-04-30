@@ -10,6 +10,8 @@ import torch
 from torch import nn
 from seldonian.models.pytorch_vae import PytorchVFAE
 from seldonian.models.pytorch_cnn_vfae import PytorchFacialVAE
+from seldonian.models.pytorch_advdp import PytorchADVDP
+
 
 from seldonian.models import objectives
 from seldonian.dataset import SupervisedDataSet,RLDataSet
@@ -26,6 +28,7 @@ class CandidateSelection(object):
 		initial_solution=None,
 		regime='supervised_learning',
 		write_logfile=False,
+		logfilename=None,
 		**kwargs):
 		""" Object for running candidate selection
 		
@@ -84,6 +87,7 @@ class CandidateSelection(object):
 		self.initial_solution = initial_solution
 		self.candidate_solution = None
 		self.write_logfile = write_logfile
+		self.logfilename = logfilename
 
 		if 'reg_coef' in kwargs:
 			self.reg_coef = kwargs['reg_coef']
@@ -213,9 +217,10 @@ class CandidateSelection(object):
 							" than supervised learning")
 			stability_const = 1e-15
 			
-			if (isinstance(self.model, PytorchVFAE) or isinstance(self.model, PytorchFacialVAE)):
+			if (isinstance(self.model, PytorchVFAE) or \
+				isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP)):
 				gd_kwargs['representation_learning'] = True
-				if int(self.model.mi_version) > 1:
+				if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP):
 					def update_adversary():
 						if hasattr(self.model, 'discriminator'):
 							self.model.pytorch_model.eval()
@@ -239,6 +244,7 @@ class CandidateSelection(object):
 								p_adversarial = Categorical(probs=s_decoded)
 								log_p_adv = p_adversarial.log_prob(self.model.pytorch_model.s)
 								discriminator_loss = -log_p_adv.mean(dim=0)
+							# print(discriminator_loss)
 							discriminator_loss.backward()
 							self.model.optimizer_d.step()
 							self.model.discriminator.eval()
@@ -273,21 +279,26 @@ class CandidateSelection(object):
 			res['batch_size'] = batch_size
 			res['n_epochs'] = n_epochs
 
-			# if self.write_logfile:
-			# 	log_counter = 0
-			# 	logdir = os.path.join('.',
-			# 		'logs')
-			# 	os.makedirs(logdir,exist_ok=True)
-			# 	filename = os.path.join(logdir,
-			# 		f'candidate_selection_log{log_counter}.p')
+			if self.write_logfile:
+				if self.logfilename != None:
+					with open(self.logfilename,'wb') as outfile:
+						pickle.dump(res,outfile)
+						print(f"Wrote {self.logfilename} with candidate selection log info")
+				else:
+					log_counter = 0
+					logdir = os.path.join('.',
+						'logs')
+					os.makedirs(logdir,exist_ok=True)
+					filename = os.path.join(logdir,
+						f'candidate_selection_log{log_counter}.p')
 
-			# 	while os.path.exists(filename):
-			# 		filename = filename.replace(
-			# 			f'log{log_counter}',f'log{log_counter+1}')
-			# 		log_counter+=1
-			# 	with open(filename,'wb') as outfile:
-			# 		pickle.dump(res,outfile)
-			# 		print(f"Wrote {filename} with candidate selection log info")
+					while os.path.exists(filename):
+						filename = filename.replace(
+							f'log{log_counter}',f'log{log_counter+1}')
+						log_counter+=1
+					with open(filename,'wb') as outfile:
+						pickle.dump(res,outfile)
+						print(f"Wrote {filename} with candidate selection log info")
 
 			
 			candidate_solution = res['candidate_solution']

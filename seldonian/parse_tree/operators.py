@@ -83,6 +83,8 @@ measure_functions_dict = {
 			'TNR',
 			'ACC',
 			'VAE',
+			'PR_ADV',
+			'NR_ADV'
 			],
 		'multiclass_classification':
 			[
@@ -94,6 +96,8 @@ measure_functions_dict = {
 			'FNR',
 			'TNR',
 			'ACC',
+			'PR_ADV',
+			'NR_ADV',
 			],
 		'regression':
 			[

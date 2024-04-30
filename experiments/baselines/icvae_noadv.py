@@ -132,11 +132,11 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
                         # delta_DP = self.demographic_parity(self.vfae.y_prob, x_valid_tensor[:, self.x_dim:self.x_dim+self.s_dim])
                         auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
                         
-                        df = pd.read_csv('./SeldonianExperimentResults/icvae.csv')
+                        df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/icvae.csv')
                         row = {'data_frac':data_frac, 'delta_dp': delta_DP, 'auc': auc, 'lr': lr, 'lam': lam, 'epoch': num_epochs}
                         print(row)
                         df = df.append(row, ignore_index=True)
-                        df.to_csv('./SeldonianExperimentResults/icvae.csv', index=False)
+                        df.to_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/icvae.csv', index=False)
 
 
     @staticmethod

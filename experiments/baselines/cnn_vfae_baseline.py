@@ -193,11 +193,11 @@ class PytorchCNNVFAE(SupervisedPytorchBaseModel):
                             y_pred_all = vae_loss, mi_sz, y_pred
                             delta_DP = utils.multiclass_demographic_parity(y_pred_all, None, **kwargs)
                             auc = roc_auc_score(Y_valid, y_pred)
-                            df = pd.read_csv('./SeldonianExperimentResults/cnn_vfae.csv')
+                            df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cnn_vfae.csv')
                             row = {'auc': auc, 'delta_dp': delta_DP, 'lr': lr, 'beta':beta, 'gamma':gamma, 'epochs':num_epochs,'data_frac':data_frac}
                             print(row)
                             df = df.append(row, ignore_index=True)
-                            df.to_csv('./SeldonianExperimentResults/cnn_vfae.csv', index=False)
+                            df.to_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cnn_vfae.csv', index=False)
 
     def get_representations(self, X):
         return self.vfae.get_representations(X)

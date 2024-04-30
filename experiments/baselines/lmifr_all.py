@@ -176,11 +176,11 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                             y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                             delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                             auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                            df = pd.read_csv(f'./SeldonianExperimentResults/lmifr.csv')
+                            df = pd.read_csv(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr.csv')
                             row = {'data_frac':data_frac, 'auc': auc, 'delta_dp': delta_DP, 'mi': mi_sz.mean().item(), 'mi_upper': mi_sz_upper_bound.mean().item(), 'epsilon':epsilon_elbo, 'lagrangian': lagrangian_elbo, 'lr': lr, 'epoch': num_epochs, 'adv_rounds':adv_rounds}
                             print(row)
                             df = df.append(row, ignore_index=True)
-                            df.to_csv(f'./SeldonianExperimentResults/lmifr.csv', index=False)
+                            df.to_csv(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr.csv', index=False)
 
     def update_adversary(self, features):
         self.pytorch_model.eval()

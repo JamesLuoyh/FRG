@@ -444,6 +444,55 @@ def _Positive_Rate_multiclass(model,theta,X,Y,class_index,**kwargs):
 	prediction = model.predict(theta,X)
 	return np.sum(prediction[:,class_index])/len(X) # if all 1s then PR=1. 
 
+def Positive_Rate_Adv(model,theta,X,Y,**kwargs):
+	"""
+	Calculate positive rate of an adversarial model
+	for the whole sample.
+	This is the sum of probability of each 
+	sample being in the positive class
+	normalized to the number of predictions 
+		
+	:param model: SeldonianModel instance:param model: SeldonianModel instance
+	:param theta: The parameter weights
+	:type theta: numpy ndarray
+	:param X: The features
+	:type X: numpy ndarray
+
+	:return: Positive rate for whole sample
+	:rtype: float between 0 and 1
+	"""	
+	if 'class_index' in kwargs:
+		pos_rate = _Positive_Rate_multiclass_Adv(model,theta,X,Y,
+			class_index=kwargs['class_index'])
+	else:
+		pos_rate = _Positive_Rate_binary_Adv(model,theta,X,Y)
+	print("pos_rate", pos_rate)
+	return pos_rate
+
+def _Positive_Rate_binary_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, Y_pred_probs = model.predict(theta,X)
+	neg_mask = Y!=1.0
+	v = np.where(Y!=1,1.0-Y_pred_probs,Y_pred_probs)
+	# print(Y_pred_probs)
+	print("Accuracy Y", np.sum(v)/len(X))
+	s_dim = model.pytorch_model.s_dim
+	if type(X) == list:
+		X, S, Y = X
+		
+	else:
+		S = X[:, -1 - s_dim: -1]
+	# print(S)
+	print("S", model.pytorch_model.s.cpu().squeeze().shape)
+	print("Y", Y.shape)
+	s = np.where(model.pytorch_model.s.cpu().squeeze()!=1,1.0-prediction_adv,prediction_adv)
+	# print(Y_pred_probs)
+	print("Accuracy S", np.sum(s)/len(X))
+	return np.sum(prediction_adv)/len(X) # if all 1s then PR=1.
+
+def _Positive_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	return np.sum(prediction_adv[:,class_index])/len(X) # if all 1s then PR=1. 
+
 def Negative_Rate(model,theta,X,Y,**kwargs):
 	"""
 	Calculate negative rate
@@ -476,6 +525,42 @@ def _Negative_Rate_multiclass(model,theta,X,Y,class_index,**kwargs):
 	# Average probability of predicting class!=class_index
 	prediction = model.predict(theta,X)
 	return np.sum(1.0-prediction[:,class_index])/len(X)  
+
+def Negative_Rate_Adv(model,theta,X,Y,**kwargs):
+	"""
+	Calculate negative rate
+	for the whole sample.
+	This is the sum of the probability of each 
+	sample being in the negative class, which is
+	1.0 - probability of being in positive class
+	
+	:param model: SeldonianModel instance
+	:param theta: The parameter weights
+	:type theta: numpy ndarray
+	:param X: The features
+	:type X: numpy ndarray
+
+	:return: Negative rate for whole sample
+	:rtype: float between 0 and 1
+	"""
+	if 'class_index' in kwargs:
+		neg_rate = _Negative_Rate_multiclass_Adv(model,theta,X,Y,
+			class_index=kwargs['class_index'])
+	else:
+		neg_rate = _Negative_Rate_binary_Adv(model,theta,X,Y)
+	print("neg_rate", neg_rate)
+	return neg_rate
+
+def _Negative_Rate_binary_Adv(model,theta,X,Y,**kwargs):
+	# Average probability of predicting the negative class
+	_, prediction_adv, _ = model.predict(theta,X)
+	return np.sum(1.0-prediction_adv)/len(X) # if all 1s then PR=1. 
+
+def _Negative_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
+	# Average probability of predicting class!=class_index
+	_, prediction_adv, _ = model.predict(theta,X)
+	return np.sum(1.0-prediction_adv[:,class_index])/len(X)  
+
 
 def False_Positive_Rate(model,theta,X,Y,**kwargs):
 	"""
@@ -837,6 +922,40 @@ def _vector_Positive_Rate_multiclass(model,theta,X,Y,class_index,**kwargs):
 	prediction = model.predict(theta,X) 
 	return prediction[:,class_index]
 
+def vector_Positive_Rate_Adv(model,theta,X,Y,**kwargs):
+	"""
+	Calculate positive rate
+	for each observation.
+	
+	This is the probability of being positive
+	
+	:param model: SeldonianModel instance
+	:param theta: The parameter weights
+	:type theta: numpy ndarray
+	:param X: The features
+	:type X: numpy ndarray
+
+	:return: Positive rate for each observation
+	:rtype: numpy ndarray(float between 0 and 1)
+	"""
+	if 'class_index' in kwargs:
+		return _vector_Positive_Rate_multiclass_Adv(
+			model,theta,X,Y,class_index=kwargs['class_index'])
+	else:
+		return _vector_Positive_Rate_binary_Adv(
+			model,theta,X,Y)
+
+def _vector_Positive_Rate_binary_Adv(model,theta,X,Y,**kwargs):
+	# probability of class 1 for each observation
+	_, prediction_adv, _ = model.predict(theta,X) 
+	return prediction_adv 
+
+def _vector_Positive_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
+	# probability of class==class_index for each observation
+	_, prediction_adv, _ = model.predict(theta,X) 
+	return prediction_adv[:,class_index]
+
+
 def vector_Negative_Rate(model,theta,X,Y,**kwargs):
 	"""
 	Calculate negative rate
@@ -869,6 +988,39 @@ def _vector_Negative_Rate_multiclass(model,theta,X,Y,class_index,**kwargs):
 	# probability of class!=class_index for each observation
 	prediction = model.predict(theta,X)
 	return 1.0 - prediction[:,class_index]
+
+def vector_Negative_Rate_Adv(model,theta,X,Y,**kwargs):
+	"""
+	Calculate negative rate
+	for each observation.
+
+	This is the probability of being negative
+	
+	:param model: SeldonianModel instance
+	:param theta: The parameter weights
+	:type theta: numpy ndarray
+	:param X: The features
+	:type X: numpy ndarray
+
+	:return: Positive rate for each observation
+	:rtype: numpy ndarray(float between 0 and 1)
+	"""
+	if 'class_index' in kwargs:
+		return _vector_Negative_Rate_multiclass_Adv(
+			model,theta,X,Y,class_index=kwargs['class_index'])
+	else:
+		return _vector_Negative_Rate_binary_Adv(
+			model,theta,X,Y)
+
+def _vector_Negative_Rate_binary_Adv(model,theta,X,Y,**kwargs):
+	# probability of class 0 for each observation
+	_, prediction_adv, _ = model.predict(theta,X)
+	return 1.0 - prediction_adv
+
+def _vector_Negative_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
+	# probability of class!=class_index for each observation
+	_, prediction_adv, _ = model.predict(theta,X)
+	return 1.0 - prediction_adv[:,class_index]
 
 def vector_False_Positive_Rate(model,theta,X,Y,**kwargs):
 	"""
@@ -1022,7 +1174,6 @@ def _vector_VAE_Code_Senstive_Mutual_Info(model,theta,X,Y,**kwargs):
 	subject to the label actually being negative
 	"""
 	loss, mi_sz, y_prob = model.predict(theta,X)
-	# print(mi_sz)
 	return mi_sz
 
 def _vector_True_Negative_Rate_multiclass(model,theta,X,Y,class_index,**kwargs):
@@ -1198,6 +1349,8 @@ measure_function_vector_mapper = {
 	'ACC':vector_Accuracy,
 	'J_pi_new':vector_IS_estimate,
 	'VAE':_vector_VAE_Code_Senstive_Mutual_Info,
+	'PR_ADV':vector_Positive_Rate_Adv,
+	'NR_ADV':vector_Negative_Rate_Adv,
 }
 
 measure_function_mapper = {
@@ -1212,4 +1365,6 @@ measure_function_mapper = {
 	'ACC':Accuracy,
 	'J_pi_new':IS_estimate,
 	'VAE':VAE_Code_Senstive_Mutual_Info,
+	'PR_ADV':Positive_Rate_Adv,
+	'NR_ADV':Positive_Rate_Adv,
 }

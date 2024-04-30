@@ -275,20 +275,20 @@ class BaselineExperiment(Experiment):
             if dataset_name == 'Adult':
                 if validation:
                     resampled_filename = os.path.join(
-                        "./SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
                     )
                 else:
                     resampled_filename = os.path.join(
-                        "./SeldonianExperimentResults/Adult_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
                     )
             elif dataset_name == 'Face':
                 if validation:
                     resampled_filename = os.path.join(
-                        "./SeldonianExperimentResults/Face", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", "resampled_dataframes", f"trial_{trial_i}.pkl"
                     )
                 else:
                     resampled_filename = os.path.join(
-                        "./SeldonianExperimentResults/Face_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
                     )
             resampled_dataset = load_pickle(resampled_filename)
             num_datapoints_tot = resampled_dataset.num_datapoints
@@ -732,6 +732,7 @@ class SeldonianExperiment(Experiment):
         validation = kwargs["validation"]
         model_name = kwargs["model_name"]
         dataset_name = kwargs["dataset_name"]
+        logfilename = kwargs["logfilename"]
         if batch_epoch_dict == {} and spec.optimization_technique == "gradient_descent":
             warning_msg = (
                 "WARNING: No batch_epoch_dict was provided. "
@@ -776,20 +777,20 @@ class SeldonianExperiment(Experiment):
                 if dataset_name == 'Adult':
                     if validation:
                         resampled_filename = os.path.join(
-                            "./SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                     else:
                         resampled_filename = os.path.join(
-                            "./SeldonianExperimentResults/Adult_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                 elif dataset_name == 'Face':
                     if validation:
                         resampled_filename = os.path.join(
-                            "./SeldonianExperimentResults/Face", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                     else:
                         resampled_filename = os.path.join(
-                            "./SeldonianExperimentResults/Face_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                 resampled_dataset = load_pickle(resampled_filename)
                 num_datapoints_tot = resampled_dataset.num_datapoints
@@ -905,7 +906,7 @@ class SeldonianExperiment(Experiment):
         ################################
         try:
             SA = SeldonianAlgorithm(spec_for_experiment)
-            passed_safety, solution = SA.run(write_cs_logfile=verbose, debug=verbose)
+            passed_safety, solution = SA.run(write_cs_logfile=verbose, debug=verbose, logfilename=logfilename)
 
         except (ValueError, ZeroDivisionError):
             passed_safety = False

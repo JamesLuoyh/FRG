@@ -505,10 +505,6 @@ class BaseNode(Node):
         if 'bound_method' in kwargs:
             bound_method = kwargs['bound_method']
             if bound_method == 'ttest':
-                print("*"*50)
-                print(data)
-                print(data.mean())
-                print(stddev(data))
                 upper = data.mean() + stddev(data) / np.sqrt(datasize) \
                     * tinv(1.0 - delta, datasize - 1)
             else:

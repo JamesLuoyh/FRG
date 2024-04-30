@@ -701,7 +701,7 @@ class SupervisedPlotGenerator(PlotGenerator):
         )
         self.regime = "supervised_learning"
     
-    def run_seldonian_experiment(self, verbose=False, model_name="qsa", validation=True, dataset_name=None):
+    def run_seldonian_experiment(self, verbose=False, model_name="qsa", validation=True, dataset_name=None, logfilename=None):
         """Run a supervised Seldonian experiment using the spec attribute
         assigned to the class in __init__().
 
@@ -718,14 +718,14 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("generating resampled datasets")
             if dataset_name == 'Adult':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test")
             else:
                 generate_resampled_datasets(dataset, self.n_trials, self.results_dir)
             print("Done generating resampled datasets")
@@ -746,6 +746,7 @@ class SupervisedPlotGenerator(PlotGenerator):
             verbose=verbose,
             validation=validation,
             dataset_name=dataset_name,
+            logfilename=logfilename,
         )
 
         ## Run experiment
@@ -882,14 +883,14 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("checking for resampled datasets")
             if dataset_name == 'Adult':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test")
             print("Done checking for resampled datasets")
             print()
 

@@ -197,45 +197,44 @@ def gradient_descent_adam(
             gu_theta_vec = grad_upper_bound_theta(theta)
             grad_primary_theta_val = grad_primary_theta(theta)
 
-
-            # if 'update_adversary' in kwargs:
-            #     update_adversary = kwargs['update_adversary']
-            #     update_adversary()
-
-            #     if itot % kwargs['n_adv_rounds'] != 0:
-            # gu_theta_vec = np.zeros_like(gu_theta_vec)
-            #         grad_primary_theta_val = np.zeros_like(grad_primary_theta_val)
+            if 'update_adversary' in kwargs:
+                update_adversary = kwargs['update_adversary']
+                update_adversary()
+            if itot % kwargs['n_adv_rounds'] == 0:
+                    # gu_theta_vec = np.zeros_like(gu_theta_vec)
+                    # grad_primary_theta_val = np.zeros_like(grad_primary_theta_val)
+                    # g_vec = np.zeros_like(g_vec)
             
-            grad_secondary_theta_val_vec = gu_theta_vec * lamb[:, None] ## to multiply each row of gu_theta_vec by elements of lamb
-            gradient_theta = grad_primary_theta_val + np.sum(
-                grad_secondary_theta_val_vec, axis=0
-            )
-            if kwargs['representation_learning']:
-                # this is needed for representation_learning because the gradient on
-                # upper bounding mutual information is already back-propergated
-                # through the return value of mutual information from the forward
-                # function of the Modules.
-                gradient_theta -= np.sum(gu_theta_vec,axis=0)
-            # gradient w.r.t. to lambda is just g
-            gradient_lamb_vec = g_vec
+                grad_secondary_theta_val_vec = gu_theta_vec * lamb[:, None] ## to multiply each row of gu_theta_vec by elements of lamb
+                gradient_theta = grad_primary_theta_val + np.sum(
+                    grad_secondary_theta_val_vec, axis=0
+                )
+                if kwargs['representation_learning']:
+                    # this is needed for representation_learning because the gradient on
+                    # upper bounding mutual information or delta DP is already back-propergated
+                    # through the return value of mutual information or delta DP from the forward
+                    # function of the Modules.
+                    gradient_theta -= np.sum(gu_theta_vec,axis=0)
+                # gradient w.r.t. to lambda is just g
+                gradient_lamb_vec = g_vec
 
-            # Momementum term
-            velocity_theta = beta_velocity*velocity_theta + (1.0-beta_velocity)*gradient_theta
+                # Momementum term
+                velocity_theta = beta_velocity*velocity_theta + (1.0-beta_velocity)*gradient_theta
 
-            # RMS prop term
-            s_theta = beta_rmsprop*s_theta + (1.0-beta_rmsprop)*pow(gradient_theta,2)
+                # RMS prop term
+                s_theta = beta_rmsprop*s_theta + (1.0-beta_rmsprop)*pow(gradient_theta,2)
 
-            # bias-correction
-            velocity_theta /= (1-pow(beta_velocity,gd_index+1))
-            s_theta /= (1-pow(beta_rmsprop,gd_index+1))
+                # bias-correction
+                velocity_theta /= (1-pow(beta_velocity,gd_index+1))
+                s_theta /= (1-pow(beta_rmsprop,gd_index+1))
 
-            # update weights
-            theta -= alpha_theta*velocity_theta/(np.sqrt(s_theta)+rms_offset) # gradient descent
-            lamb += alpha_lamb*gradient_lamb_vec # element wise update
-            
-            # If any values in lambda vector dip below 0, force them to be zero
-            lamb[lamb<0]=0
-            
+                # update weights
+                theta -= alpha_theta*velocity_theta/(np.sqrt(s_theta)+rms_offset) # gradient descent
+                lamb += alpha_lamb*gradient_lamb_vec # element wise update
+                
+                # If any values in lambda vector dip below 0, force them to be zero
+                lamb[lamb<0]=0
+                
             gd_index += 1
         else: # only executed if inner loop did not break
             continue
@@ -278,10 +277,10 @@ def gradient_descent_adam(
     solution['best_lamb'] = best_lamb
     solution['best_L'] = best_L
     solution['found_feasible_solution'] = found_feasible_solution
-    solution['theta_vals'] = np.array(theta_vals)
+    solution['theta_vals'] = None# np.array(theta_vals)
     solution['f_vals'] = np.array(f_vals)
     solution['lamb_vals'] = np.array(lamb_vals)
-    # solution['g_vals'] = np.array(g_vals)
+    solution['g_vals'] = np.array(g_vals)
     solution['L_vals'] = np.array(L_vals)
 
     return solution
