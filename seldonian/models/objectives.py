@@ -947,7 +947,8 @@ def vector_Positive_Rate_Adv(model,theta,X,Y,**kwargs):
 
 def _vector_Positive_Rate_binary_Adv(model,theta,X,Y,**kwargs):
 	# probability of class 1 for each observation
-	_, prediction_adv, _ = model.predict(theta,X) 
+	_, prediction_adv, _ = model.predict(theta,X)
+	
 	return prediction_adv 
 
 def _vector_Positive_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):

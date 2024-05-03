@@ -39,6 +39,7 @@ def advdp_example(
     data_fracs = [1] #[0.1, 0.15,0.25,0.40,0.65,]
     
     z_dim = 50
+    dropout_rate = 0.5
     device = torch.device(device_id)
     model = PytorchADVDP(device, **{"x_dim": 117,
         "s_dim": 1,
@@ -48,7 +49,7 @@ def advdp_example(
         "z1_dec_dim": 100,
         "x_dec_dim": 100,
         "z_dim": z_dim,
-        "dropout_rate": 0.0,
+        "dropout_rate": dropout_rate,
         "alpha_adv": 1e-4,
         "mi_version": 1}
     )
@@ -78,11 +79,11 @@ def advdp_example(
 
     # practical psi=0.32
     alpha_l =  [1e-3]#, 1e-4]
-    alpha_lambda_l = [1e-3]#, 1e-3]
-    lambda_init_l = [1.0]
-    epochs_l = [1000]
-    adv_rounds = [1,2,5,10]
-
+    alpha_lambda_l = [1e-4]#, 1e-4] 1e-4,
+    lambda_init_l = [0.5]#0.5
+    epochs_l = [20000]
+    adv_rounds = [2]
+    frac_data_in_safety = 0.4
     # alpha_l = [spec.optimization_hyperparams["alpha_theta"]]
     # alpha_lambda_l = [spec.optimization_hyperparams["alpha_lamb"]]
     # lambda_init_l = [spec.optimization_hyperparams["lambda_init"][0]]
@@ -97,21 +98,22 @@ def advdp_example(
                         spec.optimization_hyperparams["alpha_theta"] = alpha
                         spec.optimization_hyperparams["alpha_lamb"] = alpha_lambda
                         spec.optimization_hyperparams["n_adv_rounds"] = n_adv_rounds
+                        spec.frac_data_in_safety = frac_data_in_safety
                         batch_epoch_dict = {
                             0.1:[500,int(epochs/0.1)],
                             0.15: [500,int(epochs/0.15)],
                             0.25:[500,int(epochs/0.25)],
                             0.40:[500,int(epochs/0.40)],
                             0.65:[500,int(epochs/0.65)],
-                            1.0: [1000,epochs],
+                            1.0: [0,epochs],
                         }
-
+                        spec.optimization_hyperparams["num_iters"] = epochs
                         if validation:
                             suffix = "validation"
                         else:
                             suffix = "test"
                         bs = batch_epoch_dict[1.0][0]
-                        log_id = f"{dataset}_{epsilon}_{alpha}_{alpha_lambda}_{lambda_init}_{epochs}_{bs}_{n_adv_rounds}_{suffix}"
+                        log_id = f"{dataset}_{epsilon}_{alpha}_{alpha_lambda}_{lambda_init}_{epochs}_{bs}_{n_adv_rounds}_{frac_data_in_safety}_{dropout_rate}_{suffix}"
                         results_dir = os.path.join(results_base_dir,
                             log_id)
                         plot_savename = os.path.join(

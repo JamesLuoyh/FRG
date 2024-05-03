@@ -60,7 +60,6 @@ if __name__ == "__main__":
         metadata_filename=metadata_pth,
         file_type='csv')
 
-    dataset
 
     epsilon = 0.08
     constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
@@ -78,13 +77,13 @@ if __name__ == "__main__":
         "z1_dec_dim": 100,
         "x_dec_dim": 100,
         "z_dim": z_dim,
-        "dropout_rate": 0.0,
+        "dropout_rate": 0.5,
         "alpha_adv": lr,
         "mi_version": 1}
     )
 
     initial_solution_fn = model.get_model_params
-    frac_data_in_safety = 0.2
+    frac_data_in_safety = 0.4
     spec = SupervisedSpec(
         dataset=dataset,
         model=model,
@@ -102,9 +101,10 @@ if __name__ == "__main__":
             'alpha_lamb'    : 1e-4,
             'beta_velocity' : 0.9,
             'beta_rmsprop'  : 0.95,
-            'use_batches'   : True,
+            'use_batches'   : False,
             'batch_size'    : bs,
             'n_epochs'      : n_epochs,
+            'num_iters'     : n_epochs,
             'gradient_library': "autograd",
             'hyper_search'  : None,
             'verbose'       : True,
@@ -118,7 +118,7 @@ if __name__ == "__main__":
             'y_dim'             : 1,
             'n_adv_rounds'      : 5,
         },
-        batch_size_safety=5000
+        # batch_size_safety=2000
     )
     spec_save_name = os.path.join(
         save_dir, f"advdp_{dataname}_{epsilon}.pkl"
@@ -126,18 +126,18 @@ if __name__ == "__main__":
     save_pickle(spec_save_name, spec)
     print(f"Saved Spec object to: {spec_save_name}")
 
-    SA = SeldonianAlgorithm(spec)
-    passed_safety,solution = SA.run(debug=False,write_cs_logfile=True)
-    if passed_safety:
-        print("Passed safety test.")
-    else:
-        print("Failed safety test")
-    st_primary_objective = SA.evaluate_primary_objective(theta=solution,
-        branch='safety_test')
-    print("Primary objective evaluated on safety test:")
-    print(st_primary_objective)
+    # SA = SeldonianAlgorithm(spec)
+    # passed_safety,solution = SA.run(debug=False,write_cs_logfile=True)
+    # if passed_safety:
+    #     print("Passed safety test.")
+    # else:
+    #     print("Failed safety test")
+    # st_primary_objective = SA.evaluate_primary_objective(theta=solution,
+    #     branch='safety_test')
+    # print("Primary objective evaluated on safety test:")
+    # print(st_primary_objective)
 
-    parse_trees[0].evaluate_constraint(theta=model.get_model_params,dataset=dataset,
-    model=model,regime='supervised_learning',
-    branch='safety_test')
-    print("VAE constraint", parse_trees[0].root.value)
+    # parse_trees[0].evaluate_constraint(theta=model.get_model_params,dataset=dataset,
+    # model=model,regime='supervised_learning',
+    # branch='safety_test')
+    # print("VAE constraint", parse_trees[0].root.value)

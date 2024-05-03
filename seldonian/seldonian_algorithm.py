@@ -14,6 +14,9 @@ from seldonian.models.pytorch_vae import PytorchVFAE
 from seldonian.models.pytorch_cnn_vfae import PytorchFacialVAE
 from seldonian.models.pytorch_advdp import PytorchADVDP
 import torch
+
+from seldonian.utils.alg_utils import train_downstream
+
 class SeldonianAlgorithm():
 	def __init__(self,spec):
 		""" Object for running the Seldonian algorithm and getting 
@@ -74,7 +77,7 @@ class SeldonianAlgorithm():
 		        sensitive_attrs=self.candidate_sensitive_attrs,
 		        num_datapoints=self.n_candidate,
 		        meta_information=self.dataset.meta_information)
-			# for vae use
+
 			self.safety_dataset = SupervisedDataSet(
 		        features=self.safety_features,
 		        labels=self.safety_labels,
@@ -274,11 +277,6 @@ class SeldonianAlgorithm():
 			return passed_safety,solution
 			
 		# Safety test
-		if isinstance(self.model, PytorchVFAE) or \
-			isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP):
-			pu = np.mean(self.safety_sensitive_attrs, axis=0)
-			print("Estimated C2 (Entropy) Candidate:", pu)
-			self.model.set_pu(pu)
 		batch_size_safety = self.spec.batch_size_safety
 		passed_safety, solution = self.run_safety_test(
 			candidate_solution=candidate_solution,
@@ -313,7 +311,37 @@ class SeldonianAlgorithm():
 			model weights found during candidate selection or 'NSF'.
 		:rtype: Tuple 
 		"""
-			
+		if isinstance(self.model, PytorchVFAE) or \
+			isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP):
+			pu = np.mean(self.safety_sensitive_attrs, axis=0)
+			print("Estimated C2 (Entropy) Candidate:", pu)
+			self.model.set_pu(pu)
+			self.model.pytorch_model.eval()
+			self.model.vfae.eval()
+			if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP):
+				X_train = self.candidate_features
+				x_dim = self.model.pytorch_model.x_dim
+				s_dim = self.model.pytorch_model.s_dim
+				Y_train = self.candidate_features[:,x_dim:x_dim+s_dim]
+				if s_dim == 1:
+					Y_train = Y_train.squeeze()
+				if type(X_train) == list:
+					# For unsupervised learning, we use the sensitive attribute in features list
+					# We remove it for downstream prediction
+					X_train = X_train[0]
+					Y_train = X_train[1]
+				batch_size = self.spec.optimization_hyperparams["downstream_bs"]
+            	# solution = baseline_model.get_model_params()
+				num_epochs = self.spec.optimization_hyperparams["downstream_epochs"]
+				lr = self.spec.optimization_hyperparams["downstream_lr"]
+				z_dim = self.spec.optimization_hyperparams["z_dim"]
+				y_dim = self.spec.optimization_hyperparams["y_dim"]
+
+				# if not self.model.params_updated:
+				# 	self.model.update_model_params(solution,**kwargs)
+				# 	self.model.params_updated = True
+				self.discriminator = train_downstream(self.model, X_train, Y_train, batch_size,
+                                        num_epochs, lr, z_dim, y_dim, self.model.device)
 		st = self.safety_test()
 		passed_safety = st.run(candidate_solution,
 			batch_size_safety=batch_size_safety)

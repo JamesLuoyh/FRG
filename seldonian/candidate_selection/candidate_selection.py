@@ -15,6 +15,7 @@ from seldonian.models.pytorch_advdp import PytorchADVDP
 
 from seldonian.models import objectives
 from seldonian.dataset import SupervisedDataSet,RLDataSet
+from seldonian.utils import alg_utils
 
 class CandidateSelection(object):
 	def __init__(self,
@@ -222,34 +223,7 @@ class CandidateSelection(object):
 				gd_kwargs['representation_learning'] = True
 				if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP):
 					def update_adversary():
-						if hasattr(self.model, 'discriminator'):
-							self.model.pytorch_model.eval()
-							self.model.vfae.eval()
-							if type(self.batch_features) == list:
-								X, S, Y = self.batch_features
-								X_torch = torch.tensor(X).float().to(self.model.device, non_blocking=True)
-								S_torch = torch.tensor(S).float().to(self.model.device, non_blocking=True)
-								Y_torch = torch.tensor(Y).float().to(self.model.device, non_blocking=True)
-								self.model.pytorch_model(X_torch, S_torch, Y_torch, self.model.discriminator)
-							else:
-								X_torch = torch.tensor(self.batch_features).float().to(self.model.device, non_blocking=True)
-								self.model.pytorch_model(X_torch, self.model.discriminator)
-							self.model.discriminator.train()
-							self.model.optimizer_d.zero_grad()
-							s_decoded = self.model.discriminator(self.model.pytorch_model.z)
-							if self.model.pytorch_model.s_dim == 1:
-								loss = nn.BCELoss()
-								discriminator_loss = loss(s_decoded, self.model.pytorch_model.s)
-							else:
-								p_adversarial = Categorical(probs=s_decoded)
-								log_p_adv = p_adversarial.log_prob(self.model.pytorch_model.s)
-								discriminator_loss = -log_p_adv.mean(dim=0)
-							# print(discriminator_loss)
-							discriminator_loss.backward()
-							self.model.optimizer_d.step()
-							self.model.discriminator.eval()
-							self.model.vfae.train()
-							self.model.pytorch_model.train()
+						alg_utils.update_adversary(self.model, self.batch_features)
 					gd_kwargs['update_adversary'] = update_adversary
 			# If user specified the gradient of the primary
 			# objective, then pass it here

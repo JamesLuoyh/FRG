@@ -904,13 +904,12 @@ class SeldonianExperiment(Experiment):
         ################################
         """" Run Seldonian algorithm """
         ################################
-        try:
-            SA = SeldonianAlgorithm(spec_for_experiment)
-            passed_safety, solution = SA.run(write_cs_logfile=verbose, debug=verbose, logfilename=logfilename)
-
-        except (ValueError, ZeroDivisionError):
-            passed_safety = False
-            solution = "NSF"
+        # try:
+        SA = SeldonianAlgorithm(spec_for_experiment)
+        passed_safety, solution = SA.run(write_cs_logfile=verbose, debug=verbose, logfilename=logfilename)
+        # except (ValueError, ZeroDivisionError):
+        #     passed_safety = False
+        #     solution = "NSF"
 
         if verbose:
             print("Solution from running seldonian algorithm:")

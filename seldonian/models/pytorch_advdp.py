@@ -87,6 +87,7 @@ class VariationalFairAutoEncoder(Module):
         self.decoder_x = DecoderMLP(z_dim + s_dim, x_dec_dim, x_dim, activation)
 
         self.dropout = Dropout(dropout_rate)
+        self.dropout_rate = dropout_rate
         self.x_dim = x_dim
         self.s_dim = s_dim
         self.y_dim = y_dim
@@ -112,11 +113,19 @@ class VariationalFairAutoEncoder(Module):
         :param inputs: dict containing inputs: {'x': x, 's': s, 'y': y} where x is the input feature vector, s the
         sensitive variable and y the target label.
         """
+        if self.training:
+            size = inputs.size(0)
+            perm = torch.randperm(size)
+            # print(self.dropout_rate)
+            idx = perm[:int((1-self.dropout_rate) * size)]
+            inputs = inputs[idx]
+
+
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
         # print("self.s_dim", self.s_dim)
         # encode
         x_s = torch.cat([x, s], dim=1)
-        x_s = self.dropout(x_s)
+        # x_s = self.dropout(x_s)
         z1_encoded, z1_enc_logvar, z1_enc_mu = self.encoder_z1(x_s)
 
         z1_s = torch.cat([z1_encoded, s], dim=1)
@@ -190,6 +199,7 @@ class VariationalMLP(Module):
         # reparameterization trick: we draw a random z
         z = sigma * torch.randn_like(mu) + mu
         return z, logvar, mu
+
 class DecoderMLP(Module):
     """
      Single hidden layer MLP used for decoding.
