@@ -61,6 +61,7 @@ class PytorchCNNICVAE(SupervisedPytorchBaseModel):
         self.x_dim = x_dim
         self.s_dim = s_dim
         self.z_dim = z_dim
+        self.hidden_dim = hidden_dim
         return self.vfae
 
     # set a prior distribution for the sensitive attribute for VAE case
@@ -149,6 +150,7 @@ class PytorchCNNICVAE(SupervisedPytorchBaseModel):
                             'y_dim'             : 1,
                             's_dim'             : self.s_dim,
                             'z_dim'             : self.z_dim,
+                            'hidden_dim'        : self.hidden_dim,
                             'device'            : self.device,
                             "X"                 : [X_valid, S_valid, Y_valid],
                         }

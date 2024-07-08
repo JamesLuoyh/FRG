@@ -335,13 +335,14 @@ class SeldonianAlgorithm():
 				num_epochs = self.spec.optimization_hyperparams["downstream_epochs"]
 				lr = self.spec.optimization_hyperparams["downstream_lr"]
 				z_dim = self.spec.optimization_hyperparams["z_dim"]
+				hidden_dim = self.spec.optimization_hyperparams["hidden_dim"]
 				y_dim = self.spec.optimization_hyperparams["y_dim"]
 
 				# if not self.model.params_updated:
 				# 	self.model.update_model_params(solution,**kwargs)
 				# 	self.model.params_updated = True
 				self.discriminator = train_downstream(self.model, X_train, Y_train, batch_size,
-                                        num_epochs, lr, z_dim, y_dim, self.model.device)
+                                        num_epochs, lr, z_dim, hidden_dim, y_dim, self.model.device)
 		st = self.safety_test()
 		passed_safety = st.run(candidate_solution,
 			batch_size_safety=batch_size_safety)

@@ -125,6 +125,7 @@ def unsupervised_downstream_predictions(model, solution, X_train, Y_train, X_tes
     lr = kwargs["downstream_lr"]
     device = kwargs["device"]
     z_dim = kwargs["z_dim"]
+    hidden_dim = kwargs["hidden_dim"]
     y_dim = kwargs["y_dim"]
     if model == 'random':
         y_pred = np.random.binomial(1, 0.5, len(X_test))
@@ -133,7 +134,7 @@ def unsupervised_downstream_predictions(model, solution, X_train, Y_train, X_tes
         model.update_model_params(solution,**kwargs)
         model.params_updated = True
     downstream_model = train_downstream(model, X_train, Y_train, batch_size,
-                                        num_epochs, lr, z_dim, y_dim, device)
+                                        num_epochs, lr, z_dim, hidden_dim, y_dim, device)
     # downstream_model = model.vfae.decoder_y
     y_pred = downstream_predictions(model, downstream_model, X_test, batch_size, y_dim, device)
     return y_pred

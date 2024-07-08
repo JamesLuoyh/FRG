@@ -84,20 +84,21 @@ class Experiment:
             self.results_dir, f"{self.model_name}_results", "trial_data"
         )
         df_list = []
-        for data_frac in kwargs["data_fracs"]:
+
+        for epsilon in [0.04,0.08,0.12,0.16]:
             for trial_i in range(kwargs["n_trials"]):
                 if kwargs["n_downstreams"] > 0:
                     for i in range(kwargs["n_downstreams"]):
                         if len(df_list) <= i:
                             df_list.append([])
                         filename = os.path.join(
-                            trial_dir, f"data_frac_{data_frac:.4f}_trial_{trial_i}_downstream_{i}.csv"
+                            trial_dir, f"epsilon_{epsilon:.4f}_trial_{trial_i}_downstream_{i}.csv"
                         )
                         df = pd.read_csv(filename)
                         df_list[i].append(df)
                 else:
                     filename = os.path.join(
-                        trial_dir, f"data_frac_{data_frac:.4f}_trial_{trial_i}.csv"
+                        trial_dir, f"epsilon_{epsilon:.4f}_trial_{trial_i}.csv"
                     )
                     df = pd.read_csv(filename)
                     df_list.append(df)
@@ -134,14 +135,14 @@ class Experiment:
         """
         result_df = pd.DataFrame([data])
         result_df.columns = colnames
-        data_frac, trial_i = data[0:2]
+        epsilon, data_frac, trial_i = data[0:3]
         if downstream_i is not None:
             savename = os.path.join(
-                trial_dir, f"data_frac_{data_frac:.4f}_trial_{trial_i}_downstream_{downstream_i}.csv"
+                trial_dir, f"epsilon_{epsilon:.4f}_trial_{trial_i}_downstream_{downstream_i}.csv"
             )
         else:
             savename = os.path.join(
-                trial_dir, f"data_frac_{data_frac:.4f}_trial_{trial_i}.csv"
+                trial_dir, f"epsilon_{epsilon:.4f}_trial_{trial_i}.csv"
             )
 
         result_df.to_csv(savename, index=False)
@@ -565,6 +566,7 @@ class BaselineExperiment(Experiment):
             perf_eval_kwargs["downstream_epochs"] = spec.optimization_hyperparams["downstream_epochs"]
             perf_eval_kwargs["downstream_lr"] = spec.optimization_hyperparams["downstream_lr"]
             perf_eval_kwargs["z_dim"] = spec.optimization_hyperparams["z_dim"]
+            perf_eval_kwargs["hidden_dim"] = spec.optimization_hyperparams["hidden_dim"]
             perf_eval_kwargs["y_dim"] = spec.optimization_hyperparams["y_dim"]
             if self.model_name == 'random':
                 baseline_model = self.model_name
@@ -643,13 +645,13 @@ class BaselineExperiment(Experiment):
             performance = np.nan
 
         # Write out file for this data_frac,trial_i combo
-        colnames = ["data_frac", "trial_i", *[fn.__name__ for fn in perf_eval_fn], "g", "failed"]
+        colnames = ["epsilon", "data_frac", "trial_i", *[fn.__name__ for fn in perf_eval_fn], "g", "failed"]
         if type(performance) == list and type(performance[0]) == list :
             for i in range(len(performance)):
-                data = [data_frac, trial_i, *(performance[i]), g, failed]
+                data = [spec.optimization_hyperparams["epsilon"], data_frac, trial_i, *(performance[i]), g, failed]
                 self.write_trial_result(data, colnames, trial_dir, downstream_i=i, verbose=kwargs["verbose"])
         else:
-                data = [data_frac, trial_i, *performance, g, failed]
+                data = [spec.optimization_hyperparams["epsilon"], data_frac, trial_i, *performance, g, failed]
                 self.write_trial_result(data, colnames, trial_dir, verbose=kwargs["verbose"])
         return
 
@@ -685,6 +687,8 @@ class SeldonianExperiment(Experiment):
         helper = partial(self.run_QSA_trial, **partial_kwargs)
 
         data_fracs = kwargs["data_fracs"]
+        epsilon = kwargs["spec"].optimization_hyperparams["epsilon"]
+        kwargs['epsilons'] = [epsilon]
         n_trials = kwargs["n_trials"]
         data_fracs_vector = np.array([x for x in data_fracs for y in range(n_trials)])
         trials_vector = np.array(
@@ -733,6 +737,7 @@ class SeldonianExperiment(Experiment):
         model_name = kwargs["model_name"]
         dataset_name = kwargs["dataset_name"]
         logfilename = kwargs["logfilename"]
+        epsilon = spec.optimization_hyperparams['epsilon']
         if batch_epoch_dict == {} and spec.optimization_technique == "gradient_descent":
             warning_msg = (
                 "WARNING: No batch_epoch_dict was provided. "
@@ -747,19 +752,19 @@ class SeldonianExperiment(Experiment):
         trial_dir = os.path.join(self.results_dir, f"{model_name}_results", "trial_data")
 
         savename = os.path.join(
-            trial_dir, f"data_frac_{data_frac:.4f}_trial_{trial_i}.csv"
+            trial_dir, f"epsilon_{epsilon:.4f}_trial_{trial_i}.csv"
         )
 
         if kwargs['n_downstreams'] > 0:
             savename = os.path.join(
-                trial_dir, f"data_frac_{data_frac:.4f}_trial_{trial_i}_downstream_0.csv"
+                trial_dir, f"epsilon_{epsilon:.4f}_trial_{trial_i}_downstream_0.csv"
             )
 
         if os.path.exists(savename):
             if verbose:
                 print(
                     f"Trial {trial_i} already run for "
-                    f"this data_frac: {data_frac}. Skipping this trial. "
+                    f"this epsilon: {epsilon}. Skipping this trial. "
                 )
             return
 
@@ -968,6 +973,7 @@ class SeldonianExperiment(Experiment):
                         perf_eval_kwargs["downstream_epochs"] = spec_for_experiment.optimization_hyperparams["downstream_epochs"]
                         perf_eval_kwargs["downstream_lr"] = spec_for_experiment.optimization_hyperparams["downstream_lr"]
                         perf_eval_kwargs["z_dim"] = spec_for_experiment.optimization_hyperparams["z_dim"]
+                        perf_eval_kwargs["hidden_dim"] = spec_for_experiment.optimization_hyperparams["hidden_dim"]
                         perf_eval_kwargs["y_dim"] = spec_for_experiment.optimization_hyperparams["y_dim"]
                         if type(labels) == list:
                             y_preds = []
@@ -1068,13 +1074,13 @@ class SeldonianExperiment(Experiment):
         for parse_tree in spec_for_experiment.parse_trees:
             parse_tree.reset_base_node_dict(reset_data=True)
         # Write out file for this data_frac,trial_i combo
-        colnames = ["data_frac", "trial_i", *[fn.__name__ for fn in perf_eval_fn], "passed_safety", "g", "failed"]
+        colnames = ["epsilon", "data_frac", "trial_i", *[fn.__name__ for fn in perf_eval_fn], "passed_safety", "g", "failed"]
         if type(performance) == list and type(performance[0]) == list :
             for i in range(len(performance)):
-                data = [data_frac, trial_i, *(performance[i]), passed_safety, g, failed]
+                data = [spec_for_experiment.optimization_hyperparams["epsilon"], data_frac, trial_i, *(performance[i]), passed_safety, g, failed]
                 self.write_trial_result(data, colnames, trial_dir, downstream_i=i, verbose=kwargs["verbose"])
         else:
-                data = [data_frac, trial_i, *performance, passed_safety, g, failed]
+                data = [spec_for_experiment.optimization_hyperparams["epsilon"], data_frac, trial_i, *performance, passed_safety, g, failed]
                 self.write_trial_result(data, colnames, trial_dir, verbose=kwargs["verbose"])
         return
 

@@ -28,6 +28,7 @@ if __name__ == "__main__":
         metadata_pth = "./adults_vfae/metadata_vfae.json"
         x_dim = 117
         z_dim = 50
+        hidden_dim = 100
         bs = 1000
         s_num=2
         nce_size=50
@@ -61,7 +62,7 @@ if __name__ == "__main__":
         file_type='csv')
 
 
-    epsilon = 0.08
+    epsilon = 0.07
     constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
     deltas = [0.1] 
     columns = ["M", "F"]
@@ -75,9 +76,9 @@ if __name__ == "__main__":
         "z1_enc_dim": 100,
         "z2_enc_dim": 100,
         "z1_dec_dim": 100,
-        "x_dec_dim": 100,
+        "x_dec_dim": hidden_dim,
         "z_dim": z_dim,
-        "dropout_rate": 0.5,
+        "dropout_rate": 0.3,
         "alpha_adv": lr,
         "mi_version": 1}
     )
@@ -110,6 +111,7 @@ if __name__ == "__main__":
             'verbose'       : True,
             'x_dim'         : x_dim,
             'z_dim'         : z_dim,
+            'hidden_dim'    : hidden_dim,
             'lr'            : lr,
             'epsilon'       : epsilon,
             'downstream_lr' : 1e-4,
@@ -121,7 +123,7 @@ if __name__ == "__main__":
         # batch_size_safety=2000
     )
     spec_save_name = os.path.join(
-        save_dir, f"advdp_{dataname}_{epsilon}.pkl"
+        save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised_hidden.pkl"
     )
     save_pickle(spec_save_name, spec)
     print(f"Saved Spec object to: {spec_save_name}")

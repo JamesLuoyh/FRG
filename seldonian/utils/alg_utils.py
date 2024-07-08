@@ -33,7 +33,7 @@ def update_adversary(model, batch_features):
         model.pytorch_model.train()
 
 def train_downstream(model, X_train, Y_train, batch_size,
-                     num_epochs, lr, z_dim, y_dim, device):
+                     num_epochs, lr, z_dim, hidden_dim, y_dim, device):
     print("Training downstream model...")
     loss_list = []
     accuracy_list = []
@@ -50,7 +50,7 @@ def train_downstream(model, X_train, Y_train, batch_size,
     model.vfae.eval()
     if hasattr(model, 'discriminator'):
         model.discriminator.eval()
-    downstream_model = DecoderMLP(z_dim, z_dim, 1, activation).to(device) # model.vfae.decoder_y
+    downstream_model = DecoderMLP(z_dim, hidden_dim, 1, activation).to(device) # model.vfae.decoder_y
     # downstream_model = model.vfae.decoder_y
     print(
         f"Running downstream gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
