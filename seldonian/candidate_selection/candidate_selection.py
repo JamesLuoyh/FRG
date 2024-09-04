@@ -105,8 +105,10 @@ class CandidateSelection(object):
 				else:
 					self.batch_features = self.features[batch_start:batch_end]
 					batch_num_datapoints = len(self.batch_features)
-
-				self.batch_labels = self.labels[batch_start:batch_end]
+				if type(self.labels) == list:
+					self.batch_labels = [x[batch_start:batch_end] for x in self.labels]
+				else:
+					self.batch_labels = self.labels[batch_start:batch_end]
 				self.batch_sensitive_attrs = self.candidate_dataset.sensitive_attrs[batch_start:batch_end]
 			else:
 				self.batch_features = self.features
@@ -119,23 +121,6 @@ class CandidateSelection(object):
 				self.batch_features,
 				self.batch_labels,
 				self.batch_sensitive_attrs,
-				num_datapoints=batch_num_datapoints,
-				meta_information=self.candidate_dataset.meta_information
-			)
-		
-		elif self.regime == 'reinforcement_learning':
-			if batch_size < num_datapoints:	
-				batch_episodes = self.candidate_dataset.episodes[batch_start:batch_end]
-				batch_num_datapoints = len(batch_episodes)
-				self.batch_sensitive_attrs = self.candidate_dataset.sensitive_attrs[batch_start:batch_end]
-			else:
-				batch_episodes = self.candidate_dataset.episodes
-				batch_num_datapoints = num_datapoints
-				self.batch_sensitive_attrs = self.candidate_dataset.sensitive_attrs
-
-			self.batch_dataset = RLDataSet(
-				episodes=batch_episodes,
-				sensitive_attrs=self.batch_sensitive_attrs,
 				num_datapoints=batch_num_datapoints,
 				meta_information=self.candidate_dataset.meta_information
 			)
@@ -415,16 +400,6 @@ class CandidateSelection(object):
 			
 			result = self.primary_objective(self.model,theta, 
 					self.batch_features, self.batch_labels)
-
-		elif self.regime == 'reinforcement_learning':
-			# Want to maximize the importance weight so minimize negative importance weight
-			# Adding regularization term so that large thetas make this less negative
-			# and therefore worse 
-			result = -1.0*self.primary_objective(
-				model=self.model,
-				theta=theta,
-				episodes=self.batch_dataset.episodes,
-				weighted_returns=None)
 
 		if hasattr(self,'reg_coef'):
 			# reg_term = self.reg_coef*np.linalg.norm(theta)

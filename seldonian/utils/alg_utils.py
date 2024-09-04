@@ -1,6 +1,9 @@
 import torch
 from torch import nn
 from torch.distributions import Categorical
+import numpy as np
+import math
+
 
 def update_adversary(model, batch_features):
     if hasattr(model, 'discriminator'):
@@ -73,6 +76,7 @@ def train_downstream(model, X_train, Y_train, batch_size,
             # get loss
             loss = criterion(y_pred, labels.float().unsqueeze(1))
             # loss backward
+
             loss.backward()
             optimizer.step()
             if i % 10 == 0:
@@ -82,6 +86,28 @@ def train_downstream(model, X_train, Y_train, batch_size,
     downstream_model.eval()
     return downstream_model
 
+def downstream_predictions(representation_model, downstream_model, X_test, batch_size, y_dim, device):
+    N_eval = len(X_test)
+    X_test = torch.from_numpy(X_test).float().to(device)
+    y_pred = np.zeros([N_eval, y_dim])
+    loss = 0
+    num_batches = math.ceil(N_eval / batch_size)
+    batch_start = 0
+    for i in range(num_batches):
+        batch_end = batch_start + batch_size
+
+        if type(X_test) == list:
+            X_test_batch = [x[batch_start:batch_end] for x in X_test]
+        else:
+            X_test_batch = X_test[batch_start:batch_end]
+        # get representations
+        representations = representation_model.get_representations(X_test_batch)
+        # get predictions
+        y_batch = downstream_model.forward(representations)
+        y_pred[batch_start:batch_end] = y_batch.cpu().detach().numpy()
+
+        batch_start = batch_end
+    return y_pred
 
 class DecoderMLP(nn.Module):
     """

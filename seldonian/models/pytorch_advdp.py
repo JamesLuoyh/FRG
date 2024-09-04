@@ -57,6 +57,10 @@ class PytorchADVDP(SupervisedPytorchBaseModel):
         self.vfae.set_pu(pu_dist)
         return
 
+    def set_dropout(self, dropout):
+        self.vfae.dropout = Dropout(dropout)
+        self.vfae.dropout_rate = dropout
+
     def get_representations(self, X):
         return self.vfae.get_representations(X)
 
@@ -116,10 +120,8 @@ class VariationalFairAutoEncoder(Module):
         if self.training:
             size = inputs.size(0)
             perm = torch.randperm(size)
-            # print(self.dropout_rate)
             idx = perm[:int((1-self.dropout_rate) * size)]
             inputs = inputs[idx]
-
 
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
         # print("self.s_dim", self.s_dim)

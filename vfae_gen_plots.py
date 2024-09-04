@@ -8,7 +8,7 @@ import numpy as np
 import os
 from experiments.generate_plots import SupervisedPlotGenerator
 from experiments.base_example import BaseExample
-from experiments.utils import probabilistic_accuracy, probabilistic_auc, demographic_parity, multiclass_demographic_parity
+from experiments.utils import probabilistic_accuracy, auc, demographic_parity, multiclass_demographic_parity
 from seldonian.utils.io_utils import load_pickle
 from sklearn.model_selection import train_test_split
 from seldonian.dataset import SupervisedDataSet
@@ -54,7 +54,7 @@ def vfae_example(
     )
 
     if performance_metric == "auc":
-        perf_eval_fn = probabilistic_auc
+        perf_eval_fn = auc
     elif performance_metric == "accuracy":
         perf_eval_fn = probabilistic_accuracy
     elif performance_metric == "dp":
@@ -151,7 +151,7 @@ def vfae_example(
                         n_workers=n_workers,
                         batch_epoch_dict=batch_epoch_dict,
                         datagen_method='resample',
-                        perf_eval_fn=[probabilistic_auc, demographic_parity],
+                        perf_eval_fn=[auc, demographic_parity],
                         constraint_eval_fns=[],
                         results_dir=results_dir,
                         perf_eval_kwargs=perf_eval_kwargs,

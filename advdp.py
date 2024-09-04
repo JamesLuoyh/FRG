@@ -23,15 +23,17 @@ os.makedirs(save_dir, exist_ok=True)
 if __name__ == "__main__":
     torch.manual_seed(2023)
     dataname = ADULTS
+    adv_task = False
     if dataname == ADULTS:
+        if not adv_task:
+            metadata_pth = "./adults_vfae/metadata_vfae.json"
+        else:
+            metadata_pth = "./adults_vfae/metadata_adv.json"
         data_pth = "./adults_vfae/vfae_adults.csv"
-        metadata_pth = "./adults_vfae/metadata_vfae.json"
         x_dim = 117
         z_dim = 50
         hidden_dim = 100
         bs = 1000
-        s_num=2
-        nce_size=50
         n_epochs = 1000
         lr = 1e-4
     elif dataname == GERMAN: # Not used 
@@ -40,8 +42,6 @@ if __name__ == "__main__":
         x_dim = 57
         z_dim = 25
         bs = 150
-        s_num=2
-        nce_size=50
         n_epochs = 150
         lr = 1e-4
     else:
@@ -62,9 +62,10 @@ if __name__ == "__main__":
         file_type='csv')
 
 
-    epsilon = 0.07
-    constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
-    deltas = [0.1] 
+    epsilon = 0.04
+    # constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
+    constraint_strs = [f'DP_ADV <= {epsilon}']
+    deltas = [0.05] 
     columns = ["M", "F"]
     parse_trees = make_parse_trees_from_constraints(
         constraint_strs,deltas,regime=regime,
@@ -122,9 +123,14 @@ if __name__ == "__main__":
         },
         # batch_size_safety=2000
     )
-    spec_save_name = os.path.join(
-        save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised_hidden.pkl"
-    )
+    if adv_task:
+        spec_save_name = os.path.join(
+            save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised_advtask.pkl"
+        )
+    else:
+        spec_save_name = os.path.join(
+            save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised.pkl"
+        )
     save_pickle(spec_save_name, spec)
     print(f"Saved Spec object to: {spec_save_name}")
 

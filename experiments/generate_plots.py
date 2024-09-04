@@ -12,7 +12,7 @@ from matplotlib import style
 
 from seldonian.utils.io_utils import save_pickle
 
-from .experiments import BaselineExperiment, SeldonianExperiment, FairlearnExperiment
+from .experiments import BaselineExperiment, SeldonianExperiment
 from .utils import generate_resampled_datasets
 
 seldonian_model_set = set(["FRG", "qsa","headless_qsa", "sa", "qsa_cvfae", "qsa_icvae", "qsa_fcrl"])
@@ -917,63 +917,6 @@ class SupervisedPlotGenerator(PlotGenerator):
         bl_exp.run_experiment(**run_baseline_kwargs)
         return
 
-    def run_fairlearn_experiment(
-        self,
-        fairlearn_sensitive_feature_names,
-        fairlearn_constraint_name,
-        fairlearn_epsilon_constraint,
-        fairlearn_epsilon_eval,
-        fairlearn_eval_kwargs={},
-        verbose=False,
-    ):
-        """Run a supervised experiment using the fairlearn
-        library
-
-        :param verbose: Whether to display results to stdout
-                while the fairlearn algorithms are running in each trial
-        :type verbose: bool, defaults to False
-        """
-
-        dataset = self.spec.dataset
-
-        if self.datagen_method == "resample":
-            # Generate n_trials resampled datasets of full length
-            # These will be cropped to data_frac fractional size
-            print("Checking for resampled datasets")
-            generate_resampled_datasets(
-                dataset,
-                self.n_trials,
-                self.results_dir,
-            )
-            print("Done generating resampled datasets")
-            print()
-
-        run_fairlearn_kwargs = dict(
-            spec=self.spec,
-            data_fracs=self.data_fracs,
-            n_trials=self.n_trials,
-            n_workers=self.n_workers,
-            datagen_method=self.datagen_method,
-            fairlearn_sensitive_feature_names=fairlearn_sensitive_feature_names,
-            fairlearn_constraint_name=fairlearn_constraint_name,
-            fairlearn_epsilon_constraint=fairlearn_epsilon_constraint,
-            fairlearn_epsilon_eval=fairlearn_epsilon_eval,
-            fairlearn_eval_kwargs=fairlearn_eval_kwargs,
-            perf_eval_fn=self.perf_eval_fn,
-            perf_eval_kwargs=self.perf_eval_kwargs,
-            constraint_eval_fns=self.constraint_eval_fns,
-            constraint_eval_kwargs=self.constraint_eval_kwargs,
-            verbose=verbose,
-        )
-
-        ## Run experiment
-        fl_exp = FairlearnExperiment(
-            results_dir=self.results_dir,
-            fairlearn_epsilon_constraint=fairlearn_epsilon_constraint,
-        )
-
-        fl_exp.run_experiment(**run_fairlearn_kwargs)
-        return
 
 
 class RLPlotGenerator(PlotGenerator):

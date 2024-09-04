@@ -165,22 +165,26 @@ class BaseNode(Node):
         if dataset.regime == 'supervised_learning':
             if type(dataset.features) == list:
                 masked_features = [x[joint_mask] for x in dataset.features]
-                masked_labels = [x[joint_mask] for x in dataset.labels]
                 # If possible, convert to numpy array. Not always possible, 
                 # e.g., if features are of different dimensions.
                 try:
                     masked_features = np.array(masked_features)
-                    masked_labels = np.array(masked_labels)
                     n_masked = len(masked_features)
                 except Exception as e:
                     # masked_features and masked_labels stay as lists
                     n_masked = len(masked_features[0])
             else:
                 # numpy array 
-                masked_features = dataset.features[joint_mask] 
-                masked_labels = dataset.labels[joint_mask]
+                masked_features = dataset.features[joint_mask]
                 n_masked = len(masked_features)
-
+            print("dataset.features", dataset.features.shape)
+            print("dataset.labels", dataset.labels[0].shape)
+            print("dataset.sensitive_attrs", dataset.sensitive_attrs.shape)
+            if type(dataset.labels) == list:
+                masked_labels = [x[joint_mask] for x in dataset.labels]
+                masked_labels = np.array(masked_labels)
+            else:
+                masked_labels = dataset.labels[joint_mask]
             return masked_features,masked_labels,n_masked
         
         elif dataset.regime == 'reinforcement_learning':
@@ -209,7 +213,6 @@ class BaseNode(Node):
             
             features = dataset.features
             labels = dataset.labels
-            
             if self.conditional_columns:
                 masked_features,masked_labels,n_masked = self.mask_data(
                     dataset,self.conditional_columns)

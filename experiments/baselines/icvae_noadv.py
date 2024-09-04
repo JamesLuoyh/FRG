@@ -8,6 +8,9 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import experiments.utils as utils
+import os
+import time
+from torch.nn import init
     
 class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
     """
@@ -33,6 +36,7 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
                  z_dim,
                  dropout_rate,
                  lr,
+                 downstream_bs,
                  use_validation=True,
                  activation=ReLU(),
                  ):
@@ -50,94 +54,122 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
         self.x_dim = x_dim
         self.s_dim = s_dim
         self.z_dim = z_dim
+        self.downstream_bs = downstream_bs
         self.use_validation = use_validation
         return self.vfae
     
-    def train(self, X_train, Y_train, batch_size, num_epochs,data_frac):
+    def train(self, X_train, Y_train, batch_size, num_epochs,data_frac,n_valid, X_test):
         print("Training model...")
         loss_list = []
         accuracy_list = []
         iter_list = []
-        x_train_tensor = torch.from_numpy(X_train)
-        y_train_label = torch.from_numpy(Y_train)
+        # if self.use_validation:
+        X_valid = X_train[-n_valid:]
+        
+        S_valid = X_train[-n_valid:, self.x_dim:self.x_dim+self.s_dim]
+        x_train_tensor = torch.from_numpy(X_train[:-n_valid])
+        x_valid_tensor = torch.from_numpy(X_train[-n_valid:])
+        x_valid_tensor = torch.from_numpy(X_valid)
+        s_valid_tensor = torch.from_numpy(S_valid)
+        if type(Y_train) == list:
+            Y_train = Y_train[0]
+        Y_valid = Y_train[-n_valid:]
+        y_train_label = torch.from_numpy(Y_train[:-n_valid])
+        y_valid_label = torch.from_numpy(Y_train[-n_valid:])
+        # else:    
+        #     x_train_tensor = torch.from_numpy(X_train)
+        #     y_train_label = torch.from_numpy(Y_train)
+        #     x_valid_tensor = x_train_tensor
+        #     y_valid_label = y_train_label
         train = torch.utils.data.TensorDataset(x_train_tensor, y_train_label)
-        if self.use_validation:
-            X_train_size = int(len(X_train) * 0.8)
-            X_valid = X_train[X_train_size:]
-            Y_valid = Y_train[X_train_size:]
-            x_train_tensor = torch.from_numpy(X_train[:X_train_size])
-            y_train_label = torch.from_numpy(Y_train[:X_train_size])
-            x_valid_tensor = torch.from_numpy(X_valid)
-            y_valid_label = torch.from_numpy(Y_valid)
-        else:
-            x_train_tensor = torch.from_numpy(X_train)
-            y_train_label = torch.from_numpy(Y_train)
-            x_valid_tensor = x_train_tensor
-            y_valid_label = y_train_label
-        train = torch.utils.data.TensorDataset(x_train_tensor, y_train_label)
-
-        trainloader = torch.utils.data.DataLoader(
-            train, batch_size=batch_size, shuffle=True
-        )
+        if batch_size == 0:
+            batch_size = len(x_train_tensor)
         print(
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
-        num_epochs_l = [int(60/data_frac)]#,30,60,90]#10,20]#30,60,90]
-        lr_l = [1e-5]#, 1e-4, 1e-3]
-        lam_l = [0.1]#, 1, 10]#np.logspace(-1,0,3)
+        num_epochs_l = [1000]#00]#,30,60,90]#10,20]#30,60,90]
+        lr_l = [1e-2]#, 1e-4, 1e-3]
+        lam_l = [1]#, 1,10]#, 1, 10]#np.logspace(-1,0,3)
+        if self.use_validation:
+            repeats = 2
+        else:
+            repeats = 1
         for lr in lr_l:
             for lam in lam_l:
                 for num_epochs in num_epochs_l:
-                    self.vfae.lam = lam
-                    self.optimizer = torch.optim.Adam(self.vfae.parameters(), lr=lr)
-                    itot = 0
-                    for epoch in range(num_epochs):
-                        for i, (features, labels) in enumerate(trainloader):
-                            # Load images
-                            features = features.float().to(self.device)
-                            labels = labels.to(self.device)
+                    param_search_id = int(time.time())
+                    for repeat in range(repeats):
+                        self.vfae.lam = lam
+                        self.optimizer = torch.optim.Adam(self.vfae.parameters(), lr=lr)
+                        self.vfae.reset_params(self.device)
+                        itot = 0
+                        trainloader = torch.utils.data.DataLoader(
+                            train, batch_size=batch_size, shuffle=True
+                        )
+                        for epoch in range(num_epochs):
+                            for i, (features, labels) in enumerate(trainloader):
+                                # Load images
+                                features = features.float().to(self.device)
+                                labels = labels.to(self.device)
 
-                            # Clear gradients w.r.t. parameters
-                            self.optimizer.zero_grad()
-                            # Forward pass to get output/logits
-                            vae_loss, mi_sz, y_prob = self.pytorch_model(features)
+                                # Clear gradients w.r.t. parameters
+                                self.optimizer.zero_grad()
+                                self.vfae.train()
+                                self.pytorch_model.train()
+                                # Forward pass to get output/logits
+                                vae_loss, mi_sz, y_prob = self.pytorch_model(features)
 
-                            # Getting gradients w.r.t. parameters
-                        
-                            vae_loss.backward()
+                                # Getting gradients w.r.t. parameters
+                            
+                                vae_loss.backward()
 
-                            # Updating parameters
-                            self.optimizer.step()
-                            if i % 100 == 0:
-                                it = f"{i+1}/{len(trainloader)}"
-                                print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{vae_loss}")
-                            itot += 1
-                    # evaluate training data
-                    if self.use_validation:
+                                # Updating parameters
+                                self.optimizer.step()
+                                if i % 100 == 0:
+                                    it = f"{i+1}/{len(trainloader)}"
+                                    print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{vae_loss}")
+                                itot += 1
+                        # evaluate training data
                         self.vfae.eval()
                         self.pytorch_model.eval()
-                        kwargs = {
+                        if self.use_validation:    
+                            kwargs = {
+                                'downstream_lr'     : 1e-4,
                                 'y_dim'             : 1,
+                                'downstream_epochs' : 5,
+                                'downstream_bs'     : self.downstream_bs,
                                 's_dim'             : self.s_dim,
                                 'z_dim'             : self.z_dim,
+                                'hidden_dim'        : self.z_dim,
                                 'device'            : self.device,
-                                'X'                 : x_valid_tensor.numpy(),
+                                'X'                 : x_valid_tensor.cpu().numpy(),
                             }
-                        x_valid_tensor = x_valid_tensor.float().to(self.device)
 
-                        vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor)
-                        
-                        y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
-                        delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
-                        # delta_DP = self.demographic_parity(self.vfae.y_prob, x_valid_tensor[:, self.x_dim:self.x_dim+self.s_dim])
-                        auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                        
-                        df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/icvae.csv')
-                        row = {'data_frac':data_frac, 'delta_dp': delta_DP, 'auc': auc, 'lr': lr, 'lam': lam, 'epoch': num_epochs}
-                        print(row)
-                        df = df.append(row, ignore_index=True)
-                        df.to_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/icvae.csv', index=False)
+                            x_valid_tensor = x_valid_tensor.float().to(self.device)
 
+                            # vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor, self.discriminator)
+                            
+                            # Train downstream model
+                            y_pred = utils.unsupervised_downstream_predictions(self, self.get_model_params(), X_train[:-n_valid], Y_train[:-n_valid], X_valid, **kwargs)
+                            x_valid_tensor = x_valid_tensor.float().to(self.device)
+                            s_valid_tensor = s_valid_tensor.float().to(self.device)
+                            y_valid_label = y_valid_label.float().to(self.device)
+                            vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor)
+                            y_pred_all = vae_loss, mi_sz, y_pred
+                            delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
+                            auc = roc_auc_score(Y_valid, y_pred)
+
+                            # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
+                            # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
+                            # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
+                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/icvae.csv'
+                            if not os.path.isfile(result_log):
+                                with open(result_log, "w") as myfile:
+                                    myfile.write("param_search_id,auc,delta_dp,mi,lam,lr,epoch,dropout")
+                            df = pd.read_csv(result_log)
+                            row = {'param_search_id':param_search_id, 'auc': auc, 'delta_dp': delta_DP, 'mi': mi_sz.mean().item(),'lam':lam, 'lr': lr, 'epoch': num_epochs, 'dropout':self.vfae.dropout.p}
+                            df.loc[len(df)] = row
+                            df.to_csv(result_log, index=False)
 
     @staticmethod
     def demographic_parity(y_prob, s):
@@ -182,14 +214,30 @@ class InvariantConditionalVariationalAutoEncoder(Module):
         self.decoder_y = DecoderMLP(z_dim, x_dec_dim, self.y_out_dim, activation)
         self.decoder_x = DecoderMLP(z_dim + s_dim, x_dec_dim, x_dim, activation)
 
+        self.activation = activation
         self.dropout = Dropout(dropout_rate)
         self.x_dim = x_dim
+        self.z1_enc_dim = z1_enc_dim
+        self.z2_enc_dim = z2_enc_dim
+        self.z1_dec_dim = z1_dec_dim
+        self.x_dec_dim = x_dec_dim
+        self.dropout_rate = dropout_rate
         self.s_dim = s_dim
         self.y_dim = y_dim
         self.z_dim = z_dim
         self.loss = VFAELoss()
         self.reconstruct_loss = BCELoss(reduce=False)
         self.lam = 0
+
+    def reset_params(self,device):
+        self.encoder_z1 = VariationalMLP(self.x_dim + self.s_dim, self.z1_enc_dim, self.z_dim, self.activation)
+        self.encoder_z2 = VariationalMLP(self.z_dim + self.y_dim, self.z2_enc_dim, self.z_dim, self.activation)
+
+        self.decoder_z1 = VariationalMLP(self.z_dim + self.y_dim, self.z1_dec_dim, self.z_dim, self.activation)
+        self.decoder_y = DecoderMLP(self.z_dim, self.x_dec_dim, self.y_out_dim, self.activation)
+        self.decoder_x = DecoderMLP(self.z_dim + self.s_dim, self.x_dec_dim, self.x_dim, self.activation)
+        self.dropout = Dropout(self.dropout_rate)
+        self.to(device)
 
     #KL(N_0|N_1) = tr(\sigma_1^{-1} \sigma_0) + 
     #  (\mu_1 - \mu_0)\sigma_1^{-1}(\mu_1 - \mu_0) - k +
@@ -273,7 +321,7 @@ class InvariantConditionalVariationalAutoEncoder(Module):
 
         self.mi_sz = self.kl_conditional_and_marg(z1_enc_mu, z1_enc_logvar, self.z_dim)
         reconstruct_loss = F.binary_cross_entropy(x_decoded, x, reduction='sum') / len(x)
-        self.mi_sz += 0.1 * reconstruct_loss
+        self.mi_sz += reconstruct_loss
         self.vae_loss += self.lam * self.mi_sz.mean()
         self.pred = y_decoded 
         self.s = s
@@ -365,10 +413,8 @@ class VFAELoss(Module):
                                        zeros)
 
         # # becomes kl between z2 and a standard normal when passing zeros
+        loss = (recons_loss + kl_loss_z1) / len(y)
 
-        loss = 0.1 * (recons_loss + kl_loss_z1) / len(y)
-
-        loss += self.alpha * supervised_loss
         return loss
 
     @staticmethod

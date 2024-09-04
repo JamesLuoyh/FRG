@@ -1,14 +1,10 @@
 ## Run VFAE experiments as described in this example: 
-
-### Possible psi values:
-# 0.32, 0.0044 
-
 import argparse
 import numpy as np
 import os
 from experiments.generate_plots_by_epsilon import SupervisedPlotGenerator
 from experiments.base_example import BaseExample
-from experiments.utils import probabilistic_accuracy, probabilistic_auc, demographic_parity, multiclass_demographic_parity
+from experiments.utils import probabilistic_accuracy, auc, f1_score, acc, demographic_parity, equal_opp,equalized_odds, bounded_dp, multiclass_demographic_parity
 from seldonian.utils.io_utils import load_pickle
 from sklearn.model_selection import train_test_split
 from seldonian.dataset import SupervisedDataSet
@@ -24,11 +20,12 @@ GERMAN = "german"
 HEALTH = "health"
 torch.manual_seed(2023)
 np.random.seed(2023)
+
 def advdp_example(
     spec_rootdir,
     results_base_dir,
     constraints = [],
-    n_trials=20,
+    n_trials=1,
     data_fracs=np.logspace(-3,0,5),
     baselines = [],
     performance_metric="auc",
@@ -40,10 +37,10 @@ def advdp_example(
     epsilon=0.08,
     delta=0.1,
 ):  
-    data_fracs = [1] #[0.1, 0.15,0.25,0.40,0.65,]
-    
+    data_fracs = [1]
     z_dim = 50
     dropout_rate = 0.3
+    
     device = torch.device(device_id)
     # model = PytorchADVDP(device, **{"x_dim": 117,
     #     "s_dim": 1,
@@ -59,7 +56,7 @@ def advdp_example(
     # )
 
     if performance_metric == "auc":
-        perf_eval_fn = probabilistic_auc
+        perf_eval_fn = auc
     elif performance_metric == "accuracy":
         perf_eval_fn = probabilistic_accuracy
     elif performance_metric == "dp":
@@ -69,72 +66,57 @@ def advdp_example(
             "Performance metric must be 'auc' or 'accuracy' or 'dp' for this example")
     specfile = os.path.join(
         spec_rootdir,
-        f"advdp_{dataset}_{epsilon}_{delta}_unsupervised_hidden.pkl"
+        f"advdp_{dataset}_{epsilon}_{delta}_unsupervised.pkl"
     )
     spec = load_pickle(specfile)
 
-
-    # theorectical psi=0.0044
-    # alpha_l = [1e-4]
-    # alpha_lambda_l = [1e-4]
-    # lambda_init_l = [10.0]
-    # epochs_l = [30]
     spec.dataset.meta_information['self_supervised'] = True
-
-    # alpha_l =  [1e-3]#, 1e-4]
-    # alpha_lambda_l = [1e-3]#, 1e-4] 1e-4,
-    # alpha_adv_l = [1e-4]
-    # lambda_init_l = [0.1]#0.5
-    # epochs_l = [10]
-    # adv_rounds = [2]
-    
-    # practical psi=0.32
-    # alpha_l =  [1e-3,1e-4]#, 1e-4]
-    # alpha_lambda_l = [1e-3, 1e-4]#, 1e-4] 1e-4,
-    # alpha_adv_l = [1e-4]
-    # lambda_init_l = [0.1, 0.5]#0.5
-    # epochs_l = [10000]
-    # adv_rounds = [2,5]
-    # frac_data_in_safety = 0.2
-    # alpha_l = [spec.optimization_hyperparams["alpha_theta"]]
-    # alpha_lambda_l = [spec.optimization_hyperparams["alpha_lamb"]]
-    # lambda_init_l = [spec.optimization_hyperparams["lambda_init"][0]]
-    # epochs_l = [spec.optimization_hyperparams["n_epochs"]]
-
+    spec.model.set_dropout(dropout_rate)
+    spec.optimization_hyperparams["dropout"] = dropout_rate
     # epsilon = 0.04
-    # alpha_l =  [1e-3]#,1e-4]#, 1e-4]
-    # alpha_lambda_l = [1e-3]#, 1e-4] 1e-4,
+    # alpha_l =  [1e-3]
+    # alpha_lambda_l = [1e-3]
     # alpha_adv_l = [1e-4]
-    # lambda_init_l = [0.5]#, 0.5]#0.5
+    # lambda_init_l = [1.0]
     # epochs_l = [10000]
-    # adv_rounds = [5]
+    # adv_rounds = [1]
+
 
     # epsilon = 0.08
-    alpha_l =  [1e-3]#,1e-4]#, 1e-4]
-    alpha_lambda_l = [1e-4]#, 1e-4] 1e-4,
+    # alpha_l =  [1e-3]
+    # alpha_lambda_l = [1e-4]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]
+    # epochs_l = [10000]
+    # adv_rounds = [2]
+
+    # epsilon = 0.12
+    # Best
+    alpha_l =  [1e-3]
+    alpha_lambda_l = [1e-3]
     alpha_adv_l = [1e-4]
-    lambda_init_l = [0.1]#, 0.5]#0.5
+    lambda_init_l = [0.5]
     epochs_l = [10000]
     adv_rounds = [5]
 
-    # epsilon = 0.12
-    # alpha_l =  [1e-3]#,1e-4]#, 1e-4]
-    # alpha_lambda_l = [1e-4]#, 1e-4] 1e-4,
+    # epsilon = 0.16
+    # alpha_l =  [1e-4]
+    # alpha_lambda_l = [1e-3]
     # alpha_adv_l = [1e-4]
-    # lambda_init_l = [0.5]#, 0.5]#0.5
+    # lambda_init_l = [1.0]
     # epochs_l = [10000]
-    # adv_rounds = [2]
+    # adv_rounds = [1]
 
-    # # epsilon = 0.16
-    # alpha_l =  [1e-3]#,1e-4]#, 1e-4]
-    # alpha_lambda_l = [1e-4]#, 1e-4] 1e-4,
+    # Tuning
+    # alpha_l =  [1e-4]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
     # alpha_adv_l = [1e-4]
-    # lambda_init_l = [0.5]#, 0.5]#0.5
+    # lambda_init_l = [0.5,1.0]#, , 1.0]#, 0.5]#0.5
     # epochs_l = [10000]
-    # adv_rounds = [2]
+    # adv_rounds = [1, 2, 5]
 
-    frac_data_in_safety = 0.2
-
+    frac_data_in_safety = 0.25
+    n_downstreams= 1 if validation else 2
     for lambda_init in lambda_init_l:
         for alpha in alpha_l:
             for alpha_lambda in alpha_lambda_l:
@@ -147,11 +129,6 @@ def advdp_example(
                             spec.optimization_hyperparams["n_adv_rounds"] = n_adv_rounds
                             spec.frac_data_in_safety = frac_data_in_safety
                             batch_epoch_dict = {
-                                0.1:[500,int(epochs/0.1)],
-                                0.15: [500,int(epochs/0.15)],
-                                0.25:[500,int(epochs/0.25)],
-                                0.40:[500,int(epochs/0.40)],
-                                0.65:[500,int(epochs/0.65)],
                                 1.0: [0,epochs],
                             }
                             spec.optimization_hyperparams["num_iters"] = epochs
@@ -167,11 +144,10 @@ def advdp_example(
                                 results_dir = os.path.join(results_base_dir,
                                     f"{ts}_{log_id}")#
                             else:
-                                results_dir = os.path.join(results_base_dir,
-                                    f"{dataset}_{delta}")#{log_id}"
-                            plot_savename = os.path.join(
-                                results_dir, f"{log_id}.png"
-                            )
+                                dirname = f"{dataset}_{delta}_full_metrics"
+                
+                                results_dir = os.path.join(results_base_dir, dirname)#{log_id}"
+                            
                             logfilename = os.path.join(
                                 results_dir, f"candidate_selection_{log_id}.p"
                             )
@@ -188,7 +164,7 @@ def advdp_example(
                                     orig_sensitive_attrs,
                                     shuffle=True,
                                     test_size=0.2,
-                                    random_state=2023)
+                                    random_state=2024)
                             new_dataset = SupervisedDataSet(
                             features=train_features, 
                             labels=train_labels,
@@ -201,11 +177,10 @@ def advdp_example(
                             perf_eval_kwargs = {
                                 'X':test_features,
                                 'y':test_labels,
-                                'performance_metric':['auc', 'dp'],
+                                'performance_metric':['auc', 'acc', 'f1', 'dp', 'eo', 'eodd'],
                                 'device': torch.device(device),
                                 's_dim': orig_sensitive_attrs.shape[1]
                             }
-
                             plot_generator = SupervisedPlotGenerator(
                                 spec=spec,
                                 n_trials=n_trials,
@@ -214,10 +189,11 @@ def advdp_example(
                                 n_workers=n_workers,
                                 batch_epoch_dict=batch_epoch_dict,
                                 datagen_method='resample',
-                                perf_eval_fn=[probabilistic_auc, demographic_parity],
-                                constraint_eval_fns=[],
+                                perf_eval_fn=[auc, acc, f1_score, demographic_parity, equal_opp, equalized_odds],
+                                constraint_eval_fns=[],#bounded_dp
                                 results_dir=results_dir,
                                 perf_eval_kwargs=perf_eval_kwargs,
+                                n_downstreams=n_downstreams,
                             )
                             if int(version) == 1:
                                 plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG',validation=validation, dataset_name='Adult', logfilename=logfilename)
@@ -226,16 +202,33 @@ def advdp_example(
                                     plot_generator.run_baseline_experiment(
                                         model_name=baseline_model, verbose=verbose,validation=validation, dataset_name='Adult'
                                     )
-                            plot_generator.make_plots(
-                                fontsize=12,
-                                legend_fontsize=8,
-                                # performance_label=['AUC', 'Probability $\Delta_{\mathrm{DP}}$ > ' + str(epsilon)],
-                                performance_label=['Average AUC', 'Average $\Delta_{\mathrm{DP}}$'],
-                                # prob_performance_below=[None, epsilon],
-                                prob_performance_below=[None, None],
-                                performance_yscale="linear",
-                                savename=plot_savename,
-                            )
+                            if n_downstreams > 1:
+                                for i in range(n_downstreams):
+                                    plot_savename = os.path.join(
+                                        results_dir, f"{log_id}_downstream_{i}.png"
+                                    )
+                                    plot_generator.make_plots(
+                                        fontsize=12,
+                                        legend_fontsize=8,
+                                        performance_label=['Average AUC', 'Average ACC', 'Average F1', 'Average $\Delta_{\mathrm{DP}}$', 'Average EOPP', 'Average EODD'],
+                                        prob_performance_below=[None, None, None, None, None, None],
+                                        performance_yscale="linear",
+                                        savename=plot_savename,
+                                        result_filename_suffix=f"_downstream_{i}"
+                                    )
+                            else:
+                                plot_savename = os.path.join(
+                                        results_dir, f"{log_id}.png"
+                                    )
+                                plot_generator.make_plots(
+                                    fontsize=12,
+                                    legend_fontsize=8,
+                                    performance_label=['Average AUC', 'Average ACC', 'Average F1', 'Average $\Delta_{\mathrm{DP}}$', 'Average EO', 'Average EODD'],
+                                    prob_performance_below=[None, None, None, None, None, None],
+                                    performance_yscale="linear",
+                                    savename=plot_savename,
+                                    result_filename_suffix=""
+                                )
                             if verbose and int(version) == 1:
                                 solution_dict = load_pickle(logfilename)
                                 cs_plot_savename = os.path.join(
@@ -249,7 +242,7 @@ def advdp_example(
                                 results = pd.read_csv(os.path.join(
                                     results_dir, "FRG_results", "FRG_results.csv"
                                 ))
-                                avg_auc = results.probabilistic_auc.mean()
+                                avg_auc = results.auc.mean()
                                 avg_dp = results.demographic_parity.mean()
                                 solution = results.passed_safety.mean()
                                 success = 1 - results.failed.mean()
@@ -284,7 +277,7 @@ if __name__ == "__main__":
     epsilon = float(args.epsilon)
     delta = float(args.delta)
 
-    baselines = []#["LMIFR","ICVAE","VFAE", "VAE","controllable_vfae"]
+    baselines = ["CFAIR"]#["ICVAE"]#["FCRL"]#["LMIFR"]#["LAFTR"]#["ICVAE"]#['FARE']#,,"VFAE", "VAE","controllable_vfae"]
 
     performance_metric="dp"
 

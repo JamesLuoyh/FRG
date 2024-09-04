@@ -12,7 +12,7 @@ from matplotlib import style
 
 from seldonian.utils.io_utils import save_pickle
 
-from .experiments import BaselineExperiment, SeldonianExperiment, FairlearnExperiment
+from .experiments import BaselineExperiment, SeldonianExperiment
 from .utils import generate_resampled_datasets
 
 seldonian_model_set = set(["FRG", "qsa","headless_qsa", "sa", "qsa_cvfae", "qsa_icvae", "qsa_fcrl"])
@@ -35,7 +35,7 @@ class PlotGenerator:
         perf_eval_kwargs={},
         constraint_eval_kwargs={},
         batch_epoch_dict={},
-        n_downstreams=0,
+        n_downstreams=1,
     ):
         """Class for running Seldonian experiments
         and generating the three plots:
@@ -246,9 +246,9 @@ class PlotGenerator:
 
         ## PLOTTING SETUP
         if include_legend:
-            figsize = (9, 4.5)
+            figsize = (18, 4.5)
         else:
-            figsize = (9, 4)
+            figsize = (18, 4)
         fig = plt.figure(figsize=figsize)
         plot_index = 1
         n_rows = len(constraints)
@@ -318,9 +318,9 @@ class PlotGenerator:
             # )
             for ax in [*ax_performances, ax_sr, ax_fr]:
                 ax.minorticks_on()
-                xticks = np.arange(0, 0.20, 0.04)
-                ax.xaxis.set_ticks(np.arange(0, 0.20, 0.04))
-                ax.set_xlim(0.01, 0.17)
+                xticks = np.arange(0, 0.17, 0.04)
+                ax.xaxis.set_ticks(np.arange(0, 0.17, 0.04))
+                ax.set_xlim(0.03, 0.17)
                 # ax.xaxis.set_major_locator(locmaj)
                 # ax.xaxis.set_minor_locator(locmin)
                 # ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
@@ -391,7 +391,7 @@ class PlotGenerator:
                         df_seldonian_passed[eval_name] = (
                             performance - prob_performance_below[idx] > 0)
                         ax_performance.axhline(
-                            y=delta, color="k", linestyle="--", label=f"delta={delta}"
+                            y=prob_performance_below[idx], color="k", linestyle="--", label=f"epsilon={prob_performance_below[idx]}"
                         )
                     mean_performance = df_seldonian_passed.groupby("epsilon").mean()[
                         eval_name
@@ -603,7 +603,7 @@ class PlotGenerator:
 
         if include_legend:
             fig.subplots_adjust(bottom=0.25)
-            ncol = 4
+            ncol = 8
             fig.legend(
                 legend_handles[::-1],
                 legend_labels[::-1],
@@ -635,7 +635,7 @@ class SupervisedPlotGenerator(PlotGenerator):
         perf_eval_kwargs={},
         constraint_eval_kwargs={},
         batch_epoch_dict={},
-        n_downstreams=0,
+        n_downstreams=1,
     ):
         """Class for running supervised Seldonian experiments
                 and generating the three plots
@@ -799,73 +799,6 @@ class SupervisedPlotGenerator(PlotGenerator):
         sd_exp.run_experiment(**run_seldonian_kwargs)
         return
 
-    def run_headless_seldonian_experiment(
-        self, 
-        full_pretraining_model,
-        initial_state_dict, 
-        headless_pretraining_model, 
-        head_layer_names,
-        latent_feature_shape,
-        loss_func_pretraining,
-        learning_rate_pretraining,
-        pretraining_device,
-        batch_epoch_dict_pretraining={},
-        safety_batch_size_pretraining=1000,
-        verbose=False):
-        """Run a headless supervised Seldonian experiment using the spec attribute
-        assigned to the class in __init__().
-
-        :param verbose: Whether to display results to stdout
-                while the Seldonian algorithms are running in each trial
-        :type verbose: bool, defaults to False
-        """
-
-        dataset = self.spec.dataset
-
-        if self.datagen_method == "resample":
-            # Generate n_trials resampled datasets of full length
-            # These will be cropped to data_frac fractional size
-            print("generating resampled datasets")
-            generate_resampled_datasets(dataset, self.n_trials, self.results_dir)
-            print("Done generating resampled datasets")
-            print()
-        else:
-            raise NotImplementedError(
-                f"datagen_method {datagen_method} not supported for headless experiments")
-
-        run_kwargs = dict(
-            spec=self.spec,
-            data_fracs=self.data_fracs,
-            n_trials=self.n_trials,
-            full_pretraining_model=full_pretraining_model,
-            initial_state_dict=initial_state_dict,
-            headless_pretraining_model=headless_pretraining_model,
-            head_layer_names=head_layer_names,
-            latent_feature_shape=latent_feature_shape,
-            batch_epoch_dict_pretraining=batch_epoch_dict_pretraining,
-            safety_batch_size_pretraining=safety_batch_size_pretraining,
-            loss_func_pretraining=loss_func_pretraining,
-            learning_rate_pretraining=learning_rate_pretraining,
-            pretraining_device=pretraining_device,
-            n_workers=self.n_workers,
-            datagen_method=self.datagen_method,
-            perf_eval_fn=self.perf_eval_fn,
-            perf_eval_kwargs=self.perf_eval_kwargs,
-            constraint_eval_fns=self.constraint_eval_fns,
-            constraint_eval_kwargs=self.constraint_eval_kwargs,
-            batch_epoch_dict=self.batch_epoch_dict,
-            verbose=verbose,
-        )
-        from .headless_experiments import HeadlessSeldonianExperiment
-        ## Run experiment
-        sd_exp = HeadlessSeldonianExperiment(
-            model_name="headless_qsa",
-            results_dir=self.results_dir)
-
-        sd_exp.run_experiment(**run_kwargs)
-        return
-
-
 
     def run_baseline_experiment(self, model_name, verbose=False, validation=True, dataset_name=None):
         """Run a supervised Seldonian experiment using the spec attribute
@@ -888,14 +821,14 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("checking for resampled datasets")
             if dataset_name == 'Adult':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", self.spec.frac_data_in_safety)
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test", self.spec.frac_data_in_safety)
             print("Done checking for resampled datasets")
             print()
 

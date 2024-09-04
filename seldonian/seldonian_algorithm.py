@@ -15,7 +15,7 @@ from seldonian.models.pytorch_cnn_vfae import PytorchFacialVAE
 from seldonian.models.pytorch_advdp import PytorchADVDP
 import torch
 
-from seldonian.utils.alg_utils import train_downstream
+from seldonian.utils.alg_utils import train_downstream, downstream_predictions
 
 class SeldonianAlgorithm():
 	def __init__(self,spec):
@@ -94,35 +94,6 @@ class SeldonianAlgorithm():
 				print(f"Safety dataset has {self.n_safety} datapoints")
 				print(f"Candidate dataset has {self.n_candidate} datapoints")
 
-		elif self.regime == 'reinforcement_learning':
-
-			self.model = self.spec.model
-
-			(
-				self.candidate_episodes,
-				self.safety_episodes,
-				self.candidate_sensitive_attrs,
-				self.safety_sensitive_attrs,
-				self.n_candidate,
-				self.n_safety
-
-			) = self.candidate_safety_split(
-					self.spec.frac_data_in_safety)
-
-			self.candidate_dataset = RLDataSet(
-				episodes=self.candidate_episodes,
-				sensitive_attrs=self.candidate_sensitive_attrs,
-				meta_information=self.column_names)
-
-			self.safety_dataset = RLDataSet(
-				episodes=self.safety_episodes,
-				sensitive_attrs=self.safety_sensitive_attrs,
-				meta_information=self.column_names)
-
-			print(f"Safety dataset has {self.n_safety} episodes")
-			print(f"Candidate dataset has {self.n_candidate} episodes")
-			print("Candidate sensitive_attrs:")
-
 		
 		if self.spec.primary_objective is None:
 			if self.regime == 'reinforcement_learning':
@@ -158,8 +129,12 @@ class SeldonianAlgorithm():
 				F_c = self.dataset.features[:n_candidate] 
 				F_s = self.dataset.features[n_candidate:] 
 			# Split labels - must be numpy array
-			L_c = self.dataset.labels[:n_candidate] 
-			L_s = self.dataset.labels[n_candidate:]
+			if type(self.dataset.labels) == list:
+				L_c = [x[:n_candidate] for x in self.dataset.labels]
+				L_s = [x[n_candidate:] for x in self.dataset.labels]
+			else:
+				L_c = self.dataset.labels[:n_candidate] 
+				L_s = self.dataset.labels[n_candidate:]
 
 			# Split sensitive attributes - must be numpy array
 			S_c = self.dataset.sensitive_attrs[:n_candidate] 
@@ -316,20 +291,25 @@ class SeldonianAlgorithm():
 			pu = np.mean(self.safety_sensitive_attrs, axis=0)
 			print("Estimated C2 (Entropy) Candidate:", pu)
 			self.model.set_pu(pu)
+			if not self.model.params_updated:
+				print("not self.model.params_updated")
+				self.model.update_model_params(candidate_solution,**self.spec.optimization_hyperparams)
+				self.model.params_updated = True
 			self.model.pytorch_model.eval()
 			self.model.vfae.eval()
 			if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP):
 				X_train = self.candidate_features
 				x_dim = self.model.pytorch_model.x_dim
 				s_dim = self.model.pytorch_model.s_dim
-				Y_train = self.candidate_features[:,x_dim:x_dim+s_dim]
+				Y_train_sensitive = self.candidate_features[:,x_dim:x_dim+s_dim]
+				
 				if s_dim == 1:
-					Y_train = Y_train.squeeze()
+					Y_train_sensitive = Y_train_sensitive.squeeze()
 				if type(X_train) == list:
 					# For unsupervised learning, we use the sensitive attribute in features list
 					# We remove it for downstream prediction
 					X_train = X_train[0]
-					Y_train = X_train[1]
+					Y_train_sensitive = X_train[1]
 				batch_size = self.spec.optimization_hyperparams["downstream_bs"]
             	# solution = baseline_model.get_model_params()
 				num_epochs = self.spec.optimization_hyperparams["downstream_epochs"]
@@ -338,11 +318,26 @@ class SeldonianAlgorithm():
 				hidden_dim = self.spec.optimization_hyperparams["hidden_dim"]
 				y_dim = self.spec.optimization_hyperparams["y_dim"]
 
-				# if not self.model.params_updated:
-				# 	self.model.update_model_params(solution,**kwargs)
-				# 	self.model.params_updated = True
-				self.discriminator = train_downstream(self.model, X_train, Y_train, batch_size,
+				if not self.model.params_updated:
+					self.model.update_model_params(solution,**kwargs)
+					self.model.params_updated = True
+				self.model.discriminator = train_downstream(self.model, X_train, Y_train_sensitive, batch_size,
                                         num_epochs, lr, z_dim, hidden_dim, y_dim, self.model.device)
+				X_test = self.safety_features
+				test_sensitive = self.safety_features[:,x_dim:x_dim+s_dim]
+				if s_dim == 1:
+						test_sensitive = test_sensitive.squeeze()
+
+				if type(X_test) == list:
+					# For unsupervised learning, we use the sensitive attribute in features list
+					# We remove it for downstream prediction
+					X_test = X_test[0]
+					test_sensitive = test_sensitive[1]
+				y_pred = downstream_predictions(self.model, self.model.discriminator, X_test, len(X_test), y_dim, self.model.device)
+				# Get the demorgraphic parity
+				print(y_pred)
+				print("Fairness test Demorgraphic Parity:",objectives.demographic_parity(y_pred, test_sensitive))
+
 		st = self.safety_test()
 		passed_safety = st.run(candidate_solution,
 			batch_size_safety=batch_size_safety)

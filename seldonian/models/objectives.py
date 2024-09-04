@@ -42,8 +42,10 @@ def batcher(func,N,batch_size,num_batches):
 						features_batch = [x[batch_start:batch_end] for x in features]
 					else:
 						features_batch = features[batch_start:batch_end]
-
-					labels_batch = labels[batch_start:batch_end]
+					if type(labels) == list:
+						labels_batch = [x[batch_start:batch_end] for x in labels]
+					else:
+						labels_batch = labels[batch_start:batch_end]
 					batch_args = [model,theta,features_batch,labels_batch]
 					
 				elif regime == 'reinforcement_learning':
@@ -492,6 +494,49 @@ def _Positive_Rate_binary_Adv(model,theta,X,Y,**kwargs):
 def _Positive_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
 	_, prediction_adv, _ = model.predict(theta,X)
 	return np.sum(prediction_adv[:,class_index])/len(X) # if all 1s then PR=1. 
+
+def Pos_DP_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+	pos_s = np.where(s == 1)[0]
+	neg_s = np.where(s == 0)[0]
+
+	pr_s_0 = 1.0 * len(np.where(prediction_adv >= 0.5)[0]) / len(pos_s)
+	pr_s_1 = 1.0 * len(np.where(prediction_adv >= 0.5)[0]) / len(neg_s)
+
+	nr_s_0 = 1.0 * len(np.where(prediction_adv < 0.5)[0]) / len(pos_s)
+	nr_s_1 = 1.0 * len(np.where(prediction_adv < 0.5)[0]) / len(neg_s)
+
+	return abs(pr_s_0 - pr_s_1)
+
+def Neg_DP_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+	pos_s = np.where(s == 1)[0]
+	neg_s = np.where(s == 0)[0]
+
+	pr_s_0 = 1.0 * len(np.where(prediction_adv >= 0.5)[0]) / len(pos_s)
+	pr_s_1 = 1.0 * len(np.where(prediction_adv >= 0.5)[0]) / len(neg_s)
+
+	nr_s_0 = 1.0 * len(np.where(prediction_adv < 0.5)[0]) / len(pos_s)
+	nr_s_1 = 1.0 * len(np.where(prediction_adv < 0.5)[0]) / len(neg_s)
+
+	return abs(nr_s_0 - nr_s_1)
+
+def DP_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+	pos_s = np.where(s == 1)[0]
+	neg_s = np.where(s == 0)[0]
+
+	pr_s_0 = 1.0 * len(np.where(prediction_adv >= 0.5)[0]) / len(pos_s)
+	pr_s_1 = 1.0 * len(np.where(prediction_adv >= 0.5)[0]) / len(neg_s)
+
+	nr_s_0 = 1.0 * len(np.where(prediction_adv < 0.5)[0]) / len(pos_s)
+	nr_s_1 = 1.0 * len(np.where(prediction_adv < 0.5)[0]) / len(neg_s)
+
+	return max(abs(pr_s_0 - pr_s_1), abs(nr_s_0 - nr_s_1))
+
 
 def Negative_Rate(model,theta,X,Y,**kwargs):
 	"""
@@ -948,8 +993,7 @@ def vector_Positive_Rate_Adv(model,theta,X,Y,**kwargs):
 def _vector_Positive_Rate_binary_Adv(model,theta,X,Y,**kwargs):
 	# probability of class 1 for each observation
 	_, prediction_adv, _ = model.predict(theta,X)
-	
-	return prediction_adv 
+	return prediction_adv
 
 def _vector_Positive_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
 	# probability of class==class_index for each observation
@@ -990,6 +1034,72 @@ def _vector_Negative_Rate_multiclass(model,theta,X,Y,class_index,**kwargs):
 	prediction = model.predict(theta,X)
 	return 1.0 - prediction[:,class_index]
 
+def vector_Pos_DP_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+
+	pos_s = np.where(s == 1)[0]
+	neg_s = np.where(s == 0)[0]
+
+	n_pairs = len(s)
+	# boostrap n_pairs to evaluate DP based on each pair
+
+	pos_chosen = np.random.choice(pos_s, n_pairs, replace=True)
+	neg_chosen = np.random.choice(neg_s, n_pairs, replace=True)
+
+	pos_labels = prediction_adv[pos_chosen]
+	neg_labels = prediction_adv[neg_chosen]
+
+	dp = np.abs(pos_labels - neg_labels)
+	return dp
+	# inverse_dp = np.abs((1 - pos_labels) - (1 - neg_labels))
+	# dp = np.stack((dp, inverse_dp))
+	# return np.amax(dp, 0)
+
+def vector_Neg_DP_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+
+	pos_s = np.where(s == 1)[0]
+	neg_s = np.where(s == 0)[0]
+
+	n_pairs = len(s)
+	# boostrap n_pairs to evaluate DP based on each pair
+
+	pos_chosen = np.random.choice(pos_s, n_pairs, replace=True)
+	neg_chosen = np.random.choice(neg_s, n_pairs, replace=True)
+
+	pos_labels = prediction_adv[pos_chosen]
+	neg_labels = prediction_adv[neg_chosen]
+
+
+	inverse_dp = np.abs((1 - pos_labels) - (1 - neg_labels))
+	return inverse_dp
+	# dp = np.stack((dp, inverse_dp))
+	# return np.amax(dp, 0)
+
+def vector_DP_Adv(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+
+	pos_s = np.where(s == 1)[0]
+	neg_s = np.where(s == 0)[0]
+
+	n_pairs = len(s)
+	# boostrap n_pairs to evaluate DP based on each pair
+
+	pos_chosen = np.random.choice(pos_s, n_pairs, replace=True)
+	neg_chosen = np.random.choice(neg_s, n_pairs, replace=True)
+
+	pos_labels = prediction_adv[pos_chosen]
+	neg_labels = prediction_adv[neg_chosen]
+
+	dp = np.abs(pos_labels - neg_labels)
+	inverse_dp = np.abs((1 - pos_labels) - (1 - neg_labels))
+
+	dp = np.stack((dp, inverse_dp))
+	return np.amax(dp, 0)
+
 def vector_Negative_Rate_Adv(model,theta,X,Y,**kwargs):
 	"""
 	Calculate negative rate
@@ -1016,7 +1126,7 @@ def vector_Negative_Rate_Adv(model,theta,X,Y,**kwargs):
 def _vector_Negative_Rate_binary_Adv(model,theta,X,Y,**kwargs):
 	# probability of class 0 for each observation
 	_, prediction_adv, _ = model.predict(theta,X)
-	return 1.0 - prediction_adv
+	return (1.0 - prediction_adv)
 
 def _vector_Negative_Rate_multiclass_Adv(model,theta,X,Y,class_index,**kwargs):
 	# probability of class!=class_index for each observation
@@ -1352,6 +1462,9 @@ measure_function_vector_mapper = {
 	'VAE':_vector_VAE_Code_Senstive_Mutual_Info,
 	'PR_ADV':vector_Positive_Rate_Adv,
 	'NR_ADV':vector_Negative_Rate_Adv,
+	'DP_ADV':vector_DP_Adv,
+	'POS_DP_ADV':vector_Pos_DP_Adv,
+	'NEG_DP_ADV':vector_Neg_DP_Adv,
 }
 
 measure_function_mapper = {
@@ -1367,5 +1480,8 @@ measure_function_mapper = {
 	'J_pi_new':IS_estimate,
 	'VAE':VAE_Code_Senstive_Mutual_Info,
 	'PR_ADV':Positive_Rate_Adv,
-	'NR_ADV':Positive_Rate_Adv,
+	'NR_ADV':Negative_Rate_Adv,
+	'DP_ADV':DP_Adv,
+	'POS_DP_ADV':Pos_DP_Adv,
+	'NEG_DP_ADV':Neg_DP_Adv,
 }

@@ -84,7 +84,10 @@ measure_functions_dict = {
 			'ACC',
 			'VAE',
 			'PR_ADV',
-			'NR_ADV'
+			'NR_ADV',
+			'DP_ADV',
+			'POS_DP_ADV',
+			'NEG_DP_ADV'
 			],
 		'multiclass_classification':
 			[
@@ -98,6 +101,9 @@ measure_functions_dict = {
 			'ACC',
 			'PR_ADV',
 			'NR_ADV',
+			'DP_ADV',
+			'POS_DP_ADV',
+			'NEG_DP_ADV'
 			],
 		'regression':
 			[

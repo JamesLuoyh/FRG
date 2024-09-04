@@ -13,7 +13,7 @@ from torch.nn import init
 
 
 import torch.nn.functional as F
-class PytorchLMIFR(SupervisedPytorchBaseModel):
+class PytorchLAFTR(SupervisedPytorchBaseModel):
     """
     Implementation of the LMIFR
     """
@@ -39,13 +39,11 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
             hidden_dim,
             dropout_rate,
             lr,
-            epsilon,
             downstream_bs,
-            lambda_init=1,
             use_validation=False,
             activation=ReLU(),
         ):
-        self.vfae = LagrangianFairTransferableAutoEncoder(x_dim,
+        self.vfae = LAFTR(x_dim,
             s_dim,
             y_dim,
             z1_enc_dim,
@@ -55,32 +53,26 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
             z_dim,
             hidden_dim,
             dropout_rate,
-            epsilon,
-            epsilon_adv=0.05,
-            epsilon_elbo=0.5,
-            lambda_init=lambda_init,
             activation=ReLU()).to(self.device)
         self.optimizer = torch.optim.Adam(self.vfae.parameters(), lr=1e-4)
         alpha_adv = lr
         self.lr = lr
         self.s_dim = s_dim
         self.x_dim = x_dim
-        self.lambda_init = lambda_init
         self.downstream_bs = downstream_bs
         self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
         self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=1e-4)
         self.adv_loss = BCELoss()
         self.use_validation = use_validation
-        self.epsilon = epsilon
         self.z_dim = z_dim
         self.hidden_dim = hidden_dim
         return self.vfae
 
     # set a prior distribution for the sensitive attribute for VAE case
-    def set_pu(self, pu):
-        pu_dist = Bernoulli(probs=torch.tensor(pu).to(self.device))
-        self.vfae.set_pu(pu_dist)
-        return
+    # def set_pu(self, pu):
+    #     pu_dist = Bernoulli(probs=torch.tensor(pu).to(self.device))
+    #     self.vfae.set_pu(pu_dist)
+    #     return
 
     def get_representations(self, X):
         return self.vfae.get_representations(X)
@@ -115,71 +107,25 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         print(
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
-        # Data size: 0.1, 0.25, 0.15, 0.40
-        # epsilon_elbo_l = [10.0]
-        # lagrangian_elbo_l = [1.0]
-        # lr_l = [1e-4]
-        # num_epochs_l = [int(90/data_frac)]
-        # adv_rounds_l = [1]
-        # Data size: 1,0.65
-        # Parameter search
-
-        # 0.04 0.08 0.12
-        # epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
-        # epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
-
-        # lagrangian_elbo_l = [0.5]#1.0]#0.5]#, 1.0]#, 0.1]#
-        # lagrangian_l = [0.1]#0.5, 1.0]#0.1, 
-        # lr_l = [1e-4]#, 1e-3]
-        # num_epochs_l = [10000]
-        # adv_rounds_l = [1]
-        # NEW
-        epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
-        epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
-
-        lagrangian_elbo_l = [0.1]#1.0]#0.5]#, 1.0]#, 0.1]#
-        lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
-        lr_l = [1e-4]#, 1e-3]
-        num_epochs_l = [10000]
-        adv_rounds_l = [1]
-
-        #  0.16
-        # epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
-        # epsilon_adv_l = [1e-2]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
-
-        # lagrangian_elbo_l = [0.1]#1.0]#0.5]#, 1.0]#, 0.1]#
-        # lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
-        # lr_l = [1e-4]#, 1e-3]
-        # num_epochs_l = [10000]
-        # adv_rounds_l = [5]
-        # better
-        # epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
-        # epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
-
-        # lagrangian_elbo_l = [0.5]#1.0]#0.5]#, 1.0]#, 0.1]#
-        # lagrangian_l = [0.1]#0.5, 1.0]#0.1, 
-        # lr_l = [1e-4]#, 1e-3]
-        # num_epochs_l = [10000]
-        # adv_rounds_l = [1]
-
         # sample
-        # epsilon_elbo_l = [0.1]
-        # epsilon_adv_l = [1e-3]
+        alphas = [1e-4,1e-3]#, 1e-3]
+        betas = [1e-4,1e-3]#, 1e-3]
+        gammas = [1e-4,1e-3]#, 1e-3]
+        lr_advs = [1e-4,1e-3]
+        lrs = [1e-4]#,1e-3,1e-2]
+        num_epochs_l = [1000]
+        adv_rounds_l = [5]#,2,5]
 
-        # lagrangian_elbo_l = [0.1]
-        # lagrangian_l = [0.1]
-        # lr_l = [1e-3]
-        # num_epochs_l = [1]
-        # adv_rounds_l = [1]
+
         if self.use_validation:
             repeats = 2
         else:
             repeats = 1
-        for lr in lr_l:
-            for epsilon_elbo in epsilon_elbo_l:
-                for epsilon_adv in epsilon_adv_l:
-                    for lagrangian_elbo in lagrangian_elbo_l:
-                        for lagrangian in lagrangian_l:
+        for alpha in alphas:
+            for beta in betas:
+                for gamma in gammas:
+                    for lr in lrs:
+                        for lr_adv in lr_advs:
                             for num_epochs in num_epochs_l:
                                 for adv_rounds in adv_rounds_l:
                                     param_search_id = int(time.time())
@@ -190,12 +136,10 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                                         self.vfae.reset_params(self.device)
                                         itot = 0
                                         self.optimizer = torch.optim.Adam(self.vfae.parameters(), lr=lr)
-                                        self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=1e-4)
-                                        self.lagrangian = torch.tensor(lagrangian, requires_grad=True, dtype=torch.float64)
-                                        self.lagrangian_elbo = torch.tensor(lagrangian_elbo, requires_grad=True, dtype=torch.float64)
-                                        self.vfae.set_lagrangian(self.lagrangian, self.lagrangian_elbo)
-                                        self.vfae.epsilon_elbo = epsilon_elbo
-                                        self.vfae.epsilon_adv = epsilon_adv
+                                        self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr_adv)
+                                        self.vfae.alpha = alpha
+                                        self.vfae.beta = beta
+                                        self.vfae.gamma = gamma
                                         for epoch in range(num_epochs):
                                             for i, (features, labels) in enumerate(trainloader):
                                                 self.discriminator.eval()
@@ -215,17 +159,12 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
 
                                                     # Updating parameters
                                                     self.optimizer.step()
-
-                                                    self.lagrangian.data.add_(lr * self.lagrangian.grad.data)
-                                                    self.lagrangian.grad.zero_()
-                                                    self.lagrangian_elbo.data.add_(lr * self.lagrangian_elbo.grad.data)
-                                                    self.lagrangian_elbo.grad.zero_()
                                                     
                                                 # Update the adversary
                                                 self.update_adversary(features)
                                                 if i % 100 == 0:
                                                     it = f"{i+1}/{len(trainloader)}"
-                                                    print(f"Epoch, it, itot, loss, mi: {epoch},{it},{itot},{vae_loss}, {mi_sz.mean()}")
+                                                    print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{vae_loss}")
                                                 itot += 1
                                         # evaluate validation data
                                         self.discriminator.eval()
@@ -261,16 +200,15 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                                             f1 = f1_score(Y_valid, y_hat)
                                             acc = accuracy_score(Y_valid, y_hat)
 
-                                            mi_sz_upper_bound = self.vfae.mi_sz_upper_bound
                                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr.csv'
+                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/laftr_new.csv'
                                             if not os.path.isfile(result_log):
                                                 with open(result_log, "w") as myfile:
-                                                    myfile.write("param_search_id,auc,delta_dp,mi,mi_upper,epsilon_elbo,epsilon_adv,lagrangian_elbo,lagrangian,lr,epoch,adv_rounds,dropout")
+                                                    myfile.write("param_search_id,auc,delta_dp,alpha,beta,gamma,lr,lr_adv,epoch,adv_rounds,dropout")
                                             df = pd.read_csv(result_log)
-                                            row = {'param_search_id':param_search_id, 'auc': auc, 'delta_dp': delta_DP, 'mi': mi_sz.mean().item(), 'mi_upper': mi_sz_upper_bound.mean().item(), 'epsilon_elbo':epsilon_elbo, 'epsilon_adv':epsilon_adv, 'lagrangian_elbo': lagrangian_elbo, 'lagrangian': lagrangian, 'lr': lr, 'epoch': num_epochs, 'adv_rounds':adv_rounds, 'dropout':self.vfae.dropout.p}
+                                            row = {'param_search_id':param_search_id, 'auc': auc, 'delta_dp': delta_DP, 'alpha': alpha, 'beta':beta, 'gamma': gamma, 'lr': lr, 'lr_adv':lr_adv,'epoch': num_epochs, 'adv_rounds':adv_rounds, 'dropout':self.vfae.dropout.p}
                                             df.loc[len(df)] = row
                                             df.to_csv(result_log, index=False)
 
@@ -288,7 +226,7 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         self.discriminator.eval()
         self.pytorch_model.train()
 
-class LagrangianFairTransferableAutoEncoder(Module):
+class LAFTR(Module):
     """
     Implementation of the LMIFR.
     """
@@ -304,10 +242,6 @@ class LagrangianFairTransferableAutoEncoder(Module):
                  z_dim,
                  hidden_dim,
                  dropout_rate,
-                 epsilon,
-                 epsilon_adv=0.1,
-                 epsilon_elbo=0.5,
-                 lambda_init=0.5,
                  activation=ReLU()
                  ):
         super().__init__()
@@ -330,8 +264,7 @@ class LagrangianFairTransferableAutoEncoder(Module):
         self.x_dec_dim = x_dec_dim
         self.dropout_rate = dropout_rate
         self.loss = VFAELoss()
-        self.epsilon_adv = epsilon_adv
-        self.epsilon_elbo = epsilon_elbo
+
 
     def reset_params(self, device):
         self.encoder_z1 = VariationalMLP(self.x_dim + self.s_dim, self.z1_enc_dim, self.z_dim, self.activation)
@@ -342,14 +275,9 @@ class LagrangianFairTransferableAutoEncoder(Module):
         self.decoder_x = DecoderMLP(self.z_dim + self.s_dim, self.x_dec_dim, self.x_dim, self.activation)
         self.dropout = Dropout(self.dropout_rate)
         self.to(device)
-    def set_pu(self, pu):
-        self.pu = pu
-        return
-
-    def set_lagrangian(self, lagrangian, lagrangian_elbo):
-        self.lagrangian = lagrangian
-        self.lagrangian_elbo = lagrangian_elbo
-        return
+    # def set_pu(self, pu):
+    #     self.pu = pu
+    #     return
 
     def get_representations(self, inputs):
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
@@ -377,11 +305,12 @@ class LagrangianFairTransferableAutoEncoder(Module):
         y_decoded = self.decoder_y(z1_encoded)
         s_decoded = discriminator(z1_encoded)
         
-        p_adversarial = Bernoulli(probs=s_decoded)
-        log_p_adv = p_adversarial.log_prob(s)
-        log_p_u = self.pu.log_prob(s)
-        self.mi_sz = log_p_adv - log_p_u
-        self.mi_sz_upper_bound = -0.5 * torch.sum(1 + z1_enc_logvar - z1_enc_mu ** 2 - z1_enc_logvar.exp(), dim = 1)
+        adv_loss = 1 - torch.abs(s_decoded - s).mean()
+        # p_adversarial = Bernoulli(probs=s_decoded)
+        # log_p_adv = p_adversarial.log_prob(s)
+        # log_p_u = self.pu.log_prob(s)
+        # self.mi_sz = log_p_adv - log_p_u
+        # self.mi_sz_upper_bound = -0.5 * torch.sum(1 + z1_enc_logvar - z1_enc_mu ** 2 - z1_enc_logvar.exp(), dim = 1)
         outputs = {
             # predictive outputs
             'x_decoded': x_decoded,
@@ -393,13 +322,13 @@ class LagrangianFairTransferableAutoEncoder(Module):
             'z1_enc_mu': z1_enc_mu,
         }
         # will return the constraint C2 term. log(qu) - log(pu) instead of y_decoded
-        self.vae_loss = self.loss(outputs, {'x': x, 's': s, 'y': y}, self.mi_sz,
-                                  self.lagrangian, self.epsilon_adv, self.lagrangian_elbo, self.epsilon_elbo)
+        self.vae_loss = self.loss(outputs, {'x': x, 's': s, 'y': y})
+        self.vae_loss += self.gamma * adv_loss
         self.pred = y_decoded
         self.s = s
         self.z = z1_encoded
         self.y_prob = y_decoded.squeeze()
-        return self.vae_loss, self.mi_sz, self.y_prob
+        return self.vae_loss, None, self.y_prob
 
 class VariationalMLP(Module):
     """
@@ -465,8 +394,7 @@ class VFAELoss(Module):
         self.bce = BCELoss()
         self.ce = CrossEntropyLoss()
 
-    def forward(self, y_pred, y_true, mi_sz,
-                lagrangian, epsilon_adv, lagrangian_elbo, epsilon_elbo):
+    def forward(self, y_pred, y_true):
         """
 
         :param y_pred: dict containing the vfae outputs
@@ -478,38 +406,10 @@ class VFAELoss(Module):
         device = y.device
         supervised_loss = self.bce(y_pred['y_decoded'], y.to(device))
         reconstruction_loss = F.binary_cross_entropy(y_pred['x_decoded'], x, reduction='sum')
-        zeros = torch.zeros_like(y_pred['z1_enc_logvar'])
-        kl_loss_z1 = self._kl_gaussian(y_pred['z1_enc_logvar'],
-                                       y_pred['z1_enc_mu'],
-                                       zeros,
-                                       zeros)
 
         # # becomes kl between z2 and a standard normal when passing zeros
 
-        loss = reconstruction_loss + kl_loss_z1
-        loss /= len(y)
+        reconstruction_loss /= len(y)
         # loss *= 0.1 # this is to keep the step size smaller for the primary objective
-        # loss += self.alpha * supervised_loss
-        loss += (kl_loss_z1 / len(y) - epsilon_elbo) * lagrangian_elbo
-        loss += (mi_sz.mean() - epsilon_adv) * lagrangian
+        loss = self.alpha * supervised_loss + self.beta * reconstruction_loss
         return loss
-
-    @staticmethod
-    def _kl_gaussian(logvar_a, mu_a, logvar_b, mu_b):
-        """
-        Average KL divergence between two (multivariate) gaussians based on their mean and standard deviation for a
-        batch of input samples. https://arxiv.org/abs/1405.2664
-
-        :param logvar_a: standard deviation a
-        :param mu_a: mean a
-        :param logvar_b: standard deviation b
-        :param mu_b: mean b
-        :return: kl divergence, mean averaged over batch dimension.
-        """
-        per_example_kl = logvar_b - logvar_a - 1 + (logvar_a.exp() + (mu_a - mu_b)**2) / logvar_b.exp()
-        kl = 0.5 * torch.sum(per_example_kl, dim=1)
-
-        return kl.sum()
-
-
-

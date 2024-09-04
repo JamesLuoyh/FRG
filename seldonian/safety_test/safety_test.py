@@ -69,6 +69,7 @@ class SafetyTest(object):
 			pt.propagate_bounds(**bounds_kwargs)
 			# Check if the i-th behavioral constraint is satisfied
 			upperBound = pt.root.upper 
+			print("Fairness test High confidence UpperBound", upperBound)
 			self.st_result[pt.constraint_str] = copy.deepcopy(pt)
 			if upperBound > 0.0: # If the current constraint was not satisfied, the safety test failed
 				passed = False

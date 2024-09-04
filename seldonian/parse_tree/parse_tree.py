@@ -5,7 +5,7 @@ Main module for building parse trees from behavioral constraints
 import ast
 import warnings
 
-import graphviz
+# import graphviz
 import autograd.numpy as np   # Thinly-wrapped version of Numpy
 
 from seldonian.warnings.custom_warnings import *
@@ -1145,69 +1145,69 @@ class ParseTree(object):
 
 		return
 		
-	def make_viz(self,title):
-		""" 
-		Make a graphviz diagram from a root node
+	# def make_viz(self,title):
+	# 	""" 
+	# 	Make a graphviz diagram from a root node
 
-		:param title: 
-			The title you want to display at the top
-			of the graph
-		:type title: str
-		"""
-		graph=graphviz.Digraph()
-		graph.attr(label=title+'\n\n')
-		graph.attr(labelloc='t')
-		graph.node(str(self.root.index),label=self.root.__repr__(),
-			shape='box',
-			fontsize=f'{self.node_fontsize}')
-		self.make_viz_helper(self.root,graph)
-		return graph
+	# 	:param title: 
+	# 		The title you want to display at the top
+	# 		of the graph
+	# 	:type title: str
+	# 	"""
+	# 	graph=graphviz.Digraph()
+	# 	graph.attr(label=title+'\n\n')
+	# 	graph.attr(labelloc='t')
+	# 	graph.node(str(self.root.index),label=self.root.__repr__(),
+	# 		shape='box',
+	# 		fontsize=f'{self.node_fontsize}')
+	# 	self.make_viz_helper(self.root,graph)
+	# 	return graph
 
-	def make_viz_helper(self,root,graph):
-		""" 
-		Helper function for make_viz()
-		Recurses through the parse tree
-		and adds nodes and edges to the graph
+	# def make_viz_helper(self,root,graph):
+	# 	""" 
+	# 	Helper function for make_viz()
+	# 	Recurses through the parse tree
+	# 	and adds nodes and edges to the graph
 
-		:param root: 
-			root of the parse tree
-		:type root: :py:class:`.Node` object
-		:param graph: 
-			The graphviz graph object
-		:type graph: graphviz.Digraph object
-		"""
-		if root.left:
-			if root.left.node_type == 'base_node':
-				style = 'filled'
-				fillcolor='green'
-			elif root.left.node_type == 'constant_node':
-				style = 'filled'
-				fillcolor='yellow'
-			else:
-				style = ''
-				fillcolor='white'
+	# 	:param root: 
+	# 		root of the parse tree
+	# 	:type root: :py:class:`.Node` object
+	# 	:param graph: 
+	# 		The graphviz graph object
+	# 	:type graph: graphviz.Digraph object
+	# 	"""
+	# 	if root.left:
+	# 		if root.left.node_type == 'base_node':
+	# 			style = 'filled'
+	# 			fillcolor='green'
+	# 		elif root.left.node_type == 'constant_node':
+	# 			style = 'filled'
+	# 			fillcolor='yellow'
+	# 		else:
+	# 			style = ''
+	# 			fillcolor='white'
 
-			graph.node(str(root.left.index),str(root.left.__repr__()),
-				style=style,fillcolor=fillcolor,shape='box',
-				fontsize=f'{self.node_fontsize}')
-			graph.edge(str(root.index),str(root.left.index))
-			self.make_viz_helper(root.left,graph)
+	# 		graph.node(str(root.left.index),str(root.left.__repr__()),
+	# 			style=style,fillcolor=fillcolor,shape='box',
+	# 			fontsize=f'{self.node_fontsize}')
+	# 		graph.edge(str(root.index),str(root.left.index))
+	# 		self.make_viz_helper(root.left,graph)
 
-		if root.right:
-			if root.right.node_type == 'base_node':
-				style = 'filled'
-				fillcolor='green'
-			elif root.right.node_type == 'constant_node':
-				style = 'filled'
-				fillcolor='yellow'
-			else:
-				style = ''
-				fillcolor='white'
-			graph.node(str(root.right.index),str(root.right.__repr__()),
-				style=style,fillcolor=fillcolor,shape='box',
-				fontsize=f'{self.node_fontsize}')
-			graph.edge(str(root.index),str(root.right.index))
-			self.make_viz_helper(root.right,graph)   
+	# 	if root.right:
+	# 		if root.right.node_type == 'base_node':
+	# 			style = 'filled'
+	# 			fillcolor='green'
+	# 		elif root.right.node_type == 'constant_node':
+	# 			style = 'filled'
+	# 			fillcolor='yellow'
+	# 		else:
+	# 			style = ''
+	# 			fillcolor='white'
+	# 		graph.node(str(root.right.index),str(root.right.__repr__()),
+	# 			style=style,fillcolor=fillcolor,shape='box',
+	# 			fontsize=f'{self.node_fontsize}')
+	# 		graph.edge(str(root.index),str(root.right.index))
+	# 		self.make_viz_helper(root.right,graph)   
 
 def make_parse_trees_from_constraints(
 	constraint_strs,

@@ -8,11 +8,11 @@ import math
 from seldonian.RL.RL_runner import create_agent, run_trial_given_agent_and_env
 from seldonian.utils.stats_utils import weighted_sum_gamma
 from seldonian.dataset import SupervisedDataSet
-from seldonian.utils.alg_utils import train_downstream
+from seldonian.utils.alg_utils import train_downstream, downstream_predictions
 import torch.nn as nn
 import torch
-def generate_resampled_datasets(dataset, n_trials, save_dir):
-    """Utility function for supervised learning to generate the
+def generate_resampled_datasets(dataset, n_trials, save_dir, frac_valid=0):
+    """Utility function for supervised learning to generate the 
     resampled datasets to use in each trial. Resamples (with replacement)
     features, labels and sensitive attributes to create n_trials versions of these
     of the same shape as the inputs
@@ -36,43 +36,53 @@ def generate_resampled_datasets(dataset, n_trials, save_dir):
     save_subdir = os.path.join(save_dir, "resampled_dataframes")
     os.makedirs(save_subdir, exist_ok=True)
     num_datapoints = dataset.num_datapoints
-    np.random.seed(2023)
+    np.random.seed(2024)
     for trial_i in range(n_trials):
         savename = os.path.join(save_subdir, f"trial_{trial_i}.pkl")
-        if not os.path.exists(savename):
-            ix_resamp = np.random.choice(
-                range(num_datapoints), num_datapoints, replace=True
+        # if not os.path.exists(savename):
+        all_data = np.array(range(num_datapoints), dtype=np.int64)
+        ix_valid = None
+        if frac_valid > 0:
+            n_valid = round(frac_valid * num_datapoints)
+            ix_valid = np.random.choice(
+                all_data, n_valid, replace=False
             )
-            # print(ix_resamp)
-            # features can be list of arrays or a single array
-            if type(dataset.features) == list:
-                resamp_features = [x[ix_resamp] for x in dataset.features]
-            else:
-                resamp_features = dataset.features[ix_resamp]
+            all_data = all_data[~np.isin(all_data, ix_valid)]
+        ix_resamp = np.random.choice(
+            all_data, num_datapoints, replace=True
+        )
+        if ix_valid is not None:
+            ix_resamp = np.append(ix_resamp, ix_valid)
+        # print(ix_resamp)
+        # features can be list of arrays or a single array
+        if type(dataset.features) == list:
+            resamp_features = [x[ix_resamp] for x in dataset.features]
+        else:
+            resamp_features = dataset.features[ix_resamp]
 
-            # labels and sensitive attributes must be arrays
-            if type(dataset.labels) is list:
-                resamp_labels = []
-                for label in dataset.labels:
-                    resamp_labels.append(label[ix_resamp])
-            else:
-                resamp_labels = dataset.labels[ix_resamp]
-            if isinstance(dataset.sensitive_attrs, np.ndarray):
-                resamp_sensitive_attrs = dataset.sensitive_attrs[ix_resamp]
-            else:
-                resamp_sensitive_attrs = []
+        # labels and sensitive attributes must be arrays
+        if type(dataset.labels) is list:
+            resamp_labels = []
+            for label in dataset.labels:
+                resamp_labels.append(label[ix_resamp])
+        else:
+            resamp_labels = dataset.labels[ix_resamp]
+        if isinstance(dataset.sensitive_attrs, np.ndarray):
+            resamp_sensitive_attrs = dataset.sensitive_attrs[ix_resamp]
+        else:
+            resamp_sensitive_attrs = []
 
-            resampled_dataset = SupervisedDataSet(
-                features=resamp_features,
-                labels=resamp_labels,
-                sensitive_attrs=resamp_sensitive_attrs,
-                num_datapoints=num_datapoints,
-                meta_information=dataset.meta_information,
-            )
+        resampled_dataset = SupervisedDataSet(
+            features=resamp_features,
+            labels=resamp_labels,
+            sensitive_attrs=resamp_sensitive_attrs,
+            num_datapoints=num_datapoints,
+            meta_information=dataset.meta_information,
+        )
 
-            with open(savename, "wb") as outfile:
-                pickle.dump(resampled_dataset, outfile)
-            print(f"Saved {savename}")
+        with open(savename, "wb") as outfile:
+            pickle.dump(resampled_dataset, outfile)
+        print(f"Saved {savename}")
 
 def generate_episodes_and_calc_J(**kwargs):
     """Calculate the expected discounted return
@@ -137,30 +147,6 @@ def unsupervised_downstream_predictions(model, solution, X_train, Y_train, X_tes
                                         num_epochs, lr, z_dim, hidden_dim, y_dim, device)
     # downstream_model = model.vfae.decoder_y
     y_pred = downstream_predictions(model, downstream_model, X_test, batch_size, y_dim, device)
-    return y_pred
-
-
-def downstream_predictions(representation_model, downstream_model, X_test, batch_size, y_dim, device):
-    N_eval = len(X_test)
-    X_test = torch.from_numpy(X_test).float().to(device)
-    y_pred = np.zeros([N_eval, y_dim])
-    loss = 0
-    num_batches = math.ceil(N_eval / batch_size)
-    batch_start = 0
-    for i in range(num_batches):
-        batch_end = batch_start + batch_size
-
-        if type(X_test) == list:
-            X_test_batch = [x[batch_start:batch_end] for x in X_test]
-        else:
-            X_test_batch = X_test[batch_start:batch_end]
-        # get representations
-        representations = representation_model.get_representations(X_test_batch)
-        # get predictions
-        y_batch = downstream_model.forward(representations)
-        y_pred[batch_start:batch_end] = y_batch.cpu().detach().numpy()
-
-        batch_start = batch_end
     return y_pred
 
 def vae_predictions(model, solution, X_test, **kwargs):
@@ -297,7 +283,7 @@ def multiclass_logistic_loss(y_pred, y, **kwargs):
     probs_trueclasses = y_pred[np.arange(n), y.astype("int")]
     return -1 / n * sum(np.log(probs_trueclasses))
 
-def probabilistic_auc(y_pred, y, **kwargs):
+def auc(y_pred, y, **kwargs):
     """For binary classification only.
     1 - error rate. Use when output of 
     model y_pred is a probability
@@ -310,12 +296,37 @@ def probabilistic_auc(y_pred, y, **kwargs):
     loss, mi, Y_pred_probs = y_pred
     Y_pred_probs = Y_pred_probs.squeeze()
     # print(Y_pred_probs)
-
+    Y_ = (Y_pred_probs > 0.5).astype(np.float32)
     from sklearn.metrics import roc_auc_score
-    return roc_auc_score(y, Y_pred_probs)
-    # return sum(v) / 
+    return roc_auc_score(y, Y_)
+
+def acc(y_pred, y, **kwargs):
+    loss, mi, Y_pred_probs = y_pred
+    Y_pred_probs = Y_pred_probs.squeeze()
+    # print(Y_pred_probs)
+    Y_ = (Y_pred_probs > 0.5).astype(np.float32)
+    from sklearn.metrics import accuracy_score
+    return accuracy_score(y, Y_)
 
 def f1_score(y_pred, y, **kwargs):
+    """For binary classification only.
+    1 - error rate. Use when output of 
+    model y_pred is a probability
+
+    :param y_pred: Array of predicted probabilities of each label
+    :param y: Array of true labels, 1-dimensional
+
+    """
+    # v = np.where(y != 1.0, 1.0 - y_pred, y_pred)
+    loss, mi, Y_pred_probs = y_pred
+    Y_pred_probs = Y_pred_probs.squeeze()
+    # print(Y_pred_probs)
+    Y_ = (Y_pred_probs > 0.5).astype(np.float32)
+    from sklearn.metrics import f1_score
+    return f1_score(y, Y_)
+    # return sum(v) / 
+
+def multiclass_f1_score(y_pred, y, **kwargs):
     """For binary classification only.
     1 - error rate. Use when output of 
     model y_pred is a probability
@@ -359,7 +370,6 @@ def demographic_parity(y_pred, y, **kwargs):
     # y_ = (1.0 / (1.0 + np.exp(-y_logits)) > 0.5).astype(np.float32)
     loss, mi, y_prob = y_pred
     y_ = (y_prob > 0.5).astype(np.float32)
-    # print(y_)
     X = kwargs["X"]
     if type(X) == list:
         X, S = X
@@ -373,13 +383,46 @@ def demographic_parity(y_pred, y, **kwargs):
         else:
             g[0] += y_[i]
             uc[0] += 1
-    # print(g[0])
-    # print(g[1])
-    # print(uc[0])
-    # print(uc[1])
     g = g / uc
 
     return np.abs(g[0] - g[1])
+
+def bounded_dp(y_pred, y, epsilon, **kwargs):
+    dp = demographic_parity(y_pred, y, kwargs)
+    return dp <= epsilon
+
+def equal_opp(y_pred, y, **kwargs):
+    X = kwargs["X"]
+    if type(X) == list:
+        X, S = X
+    else:
+        S = X[:, -2]
+    loss, mi, y_prob = y_pred
+    y_ = (y_prob > 0.5).astype(np.float32)
+
+    sel0 = y_[np.where((S==0) & (y==1))[0]]
+    sel1 = y_[np.where((S==1) & (y==1))[0]]
+    if len(sel0) == 0:
+        sel0_mean = 0
+    else:
+        sel0_mean = sel0.mean()
+    if len(sel1) == 0:
+        sel1_mean = 0
+    else:
+        sel1_mean = sel1.mean()
+    return np.abs(sel0_mean - sel1_mean)
+
+
+
+def equalized_odds(y_pred, y, **kwargs):
+    # The mean of positive and negative equal opportunities
+    loss, mi, y_prob = y_pred
+    neg_y_prob = 1 - y_prob
+    neg_y_pred = loss, mi, neg_y_prob
+    
+    eopp1 = equal_opp(y_pred, y, **kwargs)
+    eopp0 = equal_opp(neg_y_pred, 1 - y, **kwargs)
+    return (eopp0 + eopp1) / 2
 
 def probabilistic_accuracy(y_pred, y, **kwargs):
     """For binary classification only.
@@ -391,13 +434,15 @@ def probabilistic_accuracy(y_pred, y, **kwargs):
 
     """
     # v = np.where(y != 1.0, 1.0 - y_pred, y_pred)
-    loss, Y_pred_probs = y_pred
+    loss, mi, Y_pred_probs = y_pred
     Y_pred_probs = Y_pred_probs.squeeze()
     # print(Y_pred_probs)
-    v = np.where(y!=1,1.0-Y_pred_probs,Y_pred_probs)
-    print(np.sum(v)/len(v))
-    return np.sum(v)/len(v)
+    # v = np.where(y!=1,1.0-Y_pred_probs,Y_pred_probs)
+    # print(np.sum(v)/len(v))
+    # return np.sum(v)/len(v)
     # return sum(v) / 
+    from sklearn.metrics import average_precision_score
+    return average_precision_score(y, Y_pred_probs)
 
 def multiclass_accuracy(y_pred,y,**kwargs):
     """For multi-class classification.
