@@ -408,9 +408,9 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     # predict the sensitive attribute
                     proba_test = downstream_prediction(s, s_test, len(z_train), z_train, z_test, z_train.shape[1], self.device, 5, 1e-4, self.y_dim)
                     y_hat = (proba_test > 0.5).astype(np.float32)
-                    auc = roc_auc_score(y_test, y_hat)
-                    f1 = f1_score(y_test, y_hat)
-                    acc = accuracy_score(y_test, y_hat)
+                    auc = roc_auc_score(s_test, y_hat)
+                    f1 = f1_score(s_test, y_hat)
+                    acc = accuracy_score(s_test, y_hat)
                     kwargs = {}
                     kwargs['X'] = X_test
                     proba_test = None, None, proba_test

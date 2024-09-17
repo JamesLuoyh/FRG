@@ -87,9 +87,9 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
         print(
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
-        num_epochs_l = [1000]#00]#,30,60,90]#10,20]#30,60,90]
-        lr_l = [1e-2]#, 1e-4, 1e-3]
-        lam_l = [1]#, 1,10]#, 1, 10]#np.logspace(-1,0,3)
+        num_epochs_l = [1000,100]#00]#,30,60,90]#10,20]#30,60,90]
+        lr_l = [1e-2, 1e-3]#, , 1e-4, 1e-3]
+        lam_l = [0.1, 1, 10]#, 1,10]#, 1, 10]#np.logspace(-1,0,3)
         if self.use_validation:
             repeats = 2
         else:
@@ -157,12 +157,14 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
                             vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor)
                             y_pred_all = vae_loss, mi_sz, y_pred
                             delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
-                            auc = roc_auc_score(Y_valid, y_pred)
+                            y_hat = (y_pred > 0.5).astype(np.float32)
+                            auc = roc_auc_score(Y_valid, y_hat)
+
 
                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/icvae.csv'
+                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cvib_sup.csv'
                             if not os.path.isfile(result_log):
                                 with open(result_log, "w") as myfile:
                                     myfile.write("param_search_id,auc,delta_dp,mi,lam,lr,epoch,dropout")
@@ -322,7 +324,7 @@ class InvariantConditionalVariationalAutoEncoder(Module):
         self.mi_sz = self.kl_conditional_and_marg(z1_enc_mu, z1_enc_logvar, self.z_dim)
         reconstruct_loss = F.binary_cross_entropy(x_decoded, x, reduction='sum') / len(x)
         self.mi_sz += reconstruct_loss
-        self.vae_loss += self.lam * self.mi_sz.mean()
+        # self.vae_loss += self.lam * self.mi_sz.mean()
         self.pred = y_decoded 
         self.s = s
         self.z = z1_encoded
@@ -415,7 +417,7 @@ class VFAELoss(Module):
         # # becomes kl between z2 and a standard normal when passing zeros
         loss = (recons_loss + kl_loss_z1) / len(y)
 
-        return loss
+        return loss + supervised_loss
 
     @staticmethod
     def _kl_gaussian(logvar_a, mu_a, logvar_b, mu_b):

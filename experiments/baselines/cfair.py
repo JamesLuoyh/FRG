@@ -98,27 +98,18 @@ class PytorchCFair(SupervisedPytorchBaseModel):
         train = torch.utils.data.TensorDataset(x_train_tensor, y_train_label)
         if batch_size == 0:
             batch_size = len(x_train_tensor)
-        
-        # betas = [1e-4]#,1e-3]#,1e-2,1e-1,1.0]#]#1e-1,]#1e-3,1e-2,
-        # lrs = [1e-3]#,1e-3]#, 1e-4]#1e-4]
-
-        # Adult 0.04
-        # betas = [1e-2]
-        # lrs = [1e-3]
-
-        # Adult 0.08
-        # betas = [1e-2]
-        # lrs = [1e-3]
-        
-        # # Adult 0.12
-        # betas = [1e-2]
-        # lrs = [1e-4]
 
         # Adult 0.16
-        mus = [1e-3]
-        lrs = [1e-3]
+        # mus = [1e-1,1e-2]
+        # lrs = [1]
 
+        # Adult 0.16
+        # mus = [1e-2]
+        # lrs = [1e-2]
 
+        # # Others
+        mus = [1e-1]
+        lrs = [1]
 
 
         num_epochs = 500
@@ -157,7 +148,7 @@ class PytorchCFair(SupervisedPytorchBaseModel):
                             self.optimizer.step()
                             if i % 100 == 0:
                                 it = f"{i+1}/{len(trainloader)}"
-                                print(f"Epoch, it, itot, loss, mi: {epoch},{it},{itot},{vae_loss}, {mi_sz.mean()}")
+                                print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{vae_loss}")
                             itot += 1
                     # evaluate validation data
                     self.vfae.eval()
@@ -197,9 +188,9 @@ class PytorchCFair(SupervisedPytorchBaseModel):
                         result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cfair.csv'
                         if not os.path.isfile(result_log):
                             with open(result_log, "w") as myfile:
-                                myfile.write("param_search_id,auc,acc,f1,delta_dp,mu,epoch,dropout,lr")
+                                myfile.write("param_search_id,auc,acc,f1,delta_dp,mu,epoch,lr")
                         df = pd.read_csv(result_log)
-                        row = {'param_search_id':param_search_id, 'auc': auc, 'acc': acc, 'f1': f1, 'delta_dp': delta_DP, 'mu':mu, 'epoch': num_epochs, 'dropout':self.vfae.dropout.p, 'lr': lr}
+                        row = {'param_search_id':param_search_id, 'auc': auc, 'acc': acc, 'f1': f1, 'delta_dp': delta_DP, 'mu':mu, 'epoch': num_epochs, 'lr': lr}
                         # print(row)
                         df.loc[len(df)] = row
                         df.to_csv(result_log, index=False)
@@ -227,7 +218,7 @@ class CFair(nn.Module):
         self.s_dim = s_dim
         self.y_dim = y_dim
         self.num_classes = 2 # label classes
-        hidden_layers = [60]
+        hidden_layers = [50]
         self.num_hidden_layers = len(hidden_layers)
         self.num_neurons = [self.x_dim] + hidden_layers
         # Parameters of hidden, fully-connected layers, feature learning component.
@@ -245,7 +236,6 @@ class CFair(nn.Module):
                                                          for i in range(self.num_adversaries_layers)])
                                           for _ in range(self.num_classes)])
         self.sensitive_cls = nn.ModuleList([nn.Linear(self.num_adversaries[-1], 2) for _ in range(self.num_classes)])
-
     #     self.to(device)
 
     # def to(self, device):
@@ -267,7 +257,7 @@ class CFair(nn.Module):
         y_mean = torch.mean(y)
         # encode
         reweight_target_tensor = torch.tensor([1.0 / (1.0 - y_mean), 1.0 / y_mean])
-        train_idx = y == 0
+        train_idx = s == 0
         
         train_base_0, train_base_1 = torch.mean(y[train_idx]), torch.mean(y[~train_idx])
         reweight_attr_0_tensor = torch.tensor([1.0 / (1.0 - train_base_0), 1.0 / train_base_0])
@@ -285,27 +275,22 @@ class CFair(nn.Module):
         h_relu = grad_reverse(h_relu)
         for j in range(self.num_classes):
             idx = y == j
-            # print(idx.squeeze().dtype)
-            # print(h_relu.shape)
-            # print(torch.arange(h_relu.shape[0]).dtype)
-            c_h_relu = h_relu[idx.long()]
+            c_h_relu = h_relu[idx.squeeze()]
             for hidden in self.adversaries[j]:
                 c_h_relu = F.relu(hidden(c_h_relu))
             c_cls = F.log_softmax(self.sensitive_cls[j](c_h_relu), dim=1)
             c_losses.append(c_cls)
         # return logprobs, c_losses
-
-        loss = F.nll_loss(logprobs, y, weight=reweight_target_tensor.to(y.device))
-        adv_loss = torch.mean(torch.stack([F.nll_loss(c_losses[j], s[y == j], weight=reweight_attr_tensors[j].to(y.device))
-                                            for j in range(self.num_classes)]))
-        loss += self.mu * adv_loss
-
+        loss = F.nll_loss(logprobs, y.squeeze().long(), weight=reweight_target_tensor.to(y.device))
+        adv_loss = torch.stack([F.nll_loss(c_losses[j], s[y == j].long(), weight=reweight_attr_tensors[j].to(y.device))
+                                            for j in range(self.num_classes)])
+        loss += self.mu * torch.mean(adv_loss)
         return loss, None, torch.exp(logprobs)
 
     def get_representations(self, inputs):
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
         # encode
-        h_relu = inputs
+        h_relu = x
         for hidden in self.hiddens:
             h_relu = F.relu(hidden(h_relu))
         return h_relu

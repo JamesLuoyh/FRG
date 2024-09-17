@@ -238,7 +238,7 @@ def advdp_example(
                                     primary_objective_name='vae loss',
                                     save=False)
                                 plt.savefig(cs_plot_savename)
-                            if int(version) == 1:
+                            if validation and int(version) == 1:
                                 results = pd.read_csv(os.path.join(
                                     results_dir, "FRG_results", "FRG_results.csv"
                                 ))
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     epsilon = float(args.epsilon)
     delta = float(args.delta)
 
-    baselines = ["CFAIR"]#["ICVAE"]#["FCRL"]#["LMIFR"]#["LAFTR"]#["ICVAE"]#['FARE']#,,"VFAE", "VAE","controllable_vfae"]
+    baselines = ["ICVAE"]#['FARE']#["LMIFR"]#["LAFTR"]#["CFAIR"]#["FCRL"]#["ICVAE"]#,,"VFAE", "VAE","controllable_vfae"]
 
     performance_metric="dp"
 

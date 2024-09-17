@@ -193,7 +193,7 @@ class PlotGenerator:
                 f"{baseline}_valid_pass.csv",
             )
             # df_valid = pd.read_csv(validation_pass)
-            fn_name = self.perf_eval_fn[0].__name__
+            fn_name = self.perf_eval_fn[3].__name__
             df_baseline["solution_returned"] = df_baseline[fn_name].apply(
                 lambda x: ~np.isnan(x)
             )

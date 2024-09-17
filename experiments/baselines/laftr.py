@@ -108,14 +108,22 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
         # sample
-        alphas = [1e-4,1e-3]#, 1e-3]
-        betas = [1e-4,1e-3]#, 1e-3]
-        gammas = [1e-4,1e-3]#, 1e-3]
-        lr_advs = [1e-4,1e-3]
+        # alphas = [1e-4,1e-3]#, 1e-3]
+        # betas = [1e-4,1e-3]#, 1e-3]
+        # gammas = [1e-4,1e-3]#, 1e-3]
+        # lr_advs = [1e-4,1e-3]
+        # lrs = [1e-4]#,1e-3,1e-2]
+        # num_epochs_l = [1000]
+        # adv_rounds_l = [5]#,2,5]
+
+
+        alphas = [1e-4]#,1e-3]#, 1e-3]
+        betas = [1e-4]#],1e-3]#, 1e-3]
+        gammas = [1e-4]#,1e-3]#, 1e-3]
+        lr_advs = [1e-4]#,1e-3]
         lrs = [1e-4]#,1e-3,1e-2]
         num_epochs_l = [1000]
         adv_rounds_l = [5]#,2,5]
-
 
         if self.use_validation:
             repeats = 2
