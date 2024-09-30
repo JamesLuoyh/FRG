@@ -68,11 +68,100 @@ def advdp_example(
         spec_rootdir,
         f"advdp_{dataset}_{epsilon}_{delta}_unsupervised.pkl"
     )
-    spec = load_pickle(specfile)
+    
+    
+    alpha_sup = 0
+    # HEALTH
 
-    spec.dataset.meta_information['self_supervised'] = True
-    spec.model.set_dropout(dropout_rate)
-    spec.optimization_hyperparams["dropout"] = dropout_rate
+    # alpha_l =  [1e-4,1e-3]#, 1e-4]
+    # alpha_lambda_l = [1e-4,1e-3]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500,1000, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1,2,5]#10]#, 2, 5]
+    # alpha_sup = 1
+
+    # epsilon = 0.04
+    # alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [2]
+    # alpha_sup = 0
+
+    # supervised
+    alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
+    alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
+    alpha_adv_l = [1e-4]
+    lambda_init_l = [1.0]#,0.5,0.1]#, , 1.0]#, 0.5]#0.5
+    epochs_l = [2000]#, 1000]#, 1000, 10000]
+    adv_rounds = [2]
+    alpha_sup = 0
+
+    # epsilon = 0.08
+    # alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]
+    # alpha_sup = 0
+
+    # supervised
+    # alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]
+    # alpha_sup = 1
+
+   # epsilon = 0.12
+    # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]
+
+    # supervised
+    # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]
+    # alpha_sup = 1
+
+    # # epsilon = 0.16
+    # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-3]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]
+
+    # supervised
+    # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-3]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]
+    # alpha_sup = 1
+
+    # # 0.2
+    # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [1000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]
+
+    ###################################################
+    
+    # ADULT
     # epsilon = 0.04
     # alpha_l =  [1e-3]
     # alpha_lambda_l = [1e-3]
@@ -81,6 +170,22 @@ def advdp_example(
     # epochs_l = [10000]
     # adv_rounds = [1]
 
+    # epsilon = 0.4 supervised
+    # alpha_l =  [1e-3]
+    # alpha_lambda_l = [1e-3]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]
+    # epochs_l = [10000]
+    # adv_rounds = [1]
+    # alpha_sup = 0.1
+    
+    # alpha_l =  [1e-3]#,1e-2]
+    # alpha_lambda_l = [1e-3]#,1e-2]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,1.0]#1.0]
+    # epochs_l = [10000]#00]
+    # adv_rounds = [5]#,2,5]
+    
 
     # epsilon = 0.08
     # alpha_l =  [1e-3]
@@ -90,14 +195,33 @@ def advdp_example(
     # epochs_l = [10000]
     # adv_rounds = [2]
 
+    # supervised
+    # alpha_l =  [1e-3]
+    # alpha_lambda_l = [1e-3]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]
+    # epochs_l = [10000]
+    # adv_rounds = [1]
+    # alpha_sup = 1
+
     # epsilon = 0.12
     # Best
-    alpha_l =  [1e-3]
-    alpha_lambda_l = [1e-3]
-    alpha_adv_l = [1e-4]
-    lambda_init_l = [0.5]
-    epochs_l = [10000]
-    adv_rounds = [5]
+    # alpha_l =  [1e-3]
+    # alpha_lambda_l = [1e-3]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]
+    # epochs_l = [10000]
+    # adv_rounds = [5]
+
+    # epsilon = 0.12 supervised
+    # Best
+    # alpha_l =  [1e-3]
+    # alpha_lambda_l = [1e-3]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]
+    # epochs_l = [10000]
+    # adv_rounds = [5]
+    # alpha_sup = 1
 
     # epsilon = 0.16
     # alpha_l =  [1e-4]
@@ -107,6 +231,15 @@ def advdp_example(
     # epochs_l = [10000]
     # adv_rounds = [1]
 
+    # epsilon = 0.16 supervised
+    # alpha_l =  [1e-4]
+    # alpha_lambda_l = [1e-3]
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]
+    # epochs_l = [10000]
+    # adv_rounds = [1]
+    # alpha_sup = 1
+
     # Tuning
     # alpha_l =  [1e-4]#, 1e-4]#, 1e-4]
     # alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
@@ -115,14 +248,21 @@ def advdp_example(
     # epochs_l = [10000]
     # adv_rounds = [1, 2, 5]
 
+
     frac_data_in_safety = 0.25
-    n_downstreams= 1 if validation else 2
+    n_downstreams= 1 if validation else 3
     for lambda_init in lambda_init_l:
         for alpha in alpha_l:
             for alpha_lambda in alpha_lambda_l:
                 for alpha_adv in alpha_adv_l:
                     for epochs in epochs_l:
                         for n_adv_rounds in adv_rounds:
+                            spec = load_pickle(specfile)
+                            print(len(spec.dataset.meta_information['feature_col_names']))
+                            spec.dataset.meta_information['self_supervised'] = True
+                            spec.model.set_dropout(dropout_rate)
+                            spec.model.set_alpha_sup(alpha_sup)
+                            spec.optimization_hyperparams["dropout"] = dropout_rate
                             spec.optimization_hyperparams["lambda_init"] = np.array([lambda_init])
                             spec.optimization_hyperparams["alpha_theta"] = alpha
                             spec.optimization_hyperparams["alpha_lamb"] = alpha_lambda
@@ -144,7 +284,7 @@ def advdp_example(
                                 results_dir = os.path.join(results_base_dir,
                                     f"{ts}_{log_id}")#
                             else:
-                                dirname = f"{dataset}_{delta}_full_metrics"
+                                dirname = f"{dataset}_{delta}_full_metrics_unsupervised"
                 
                                 results_dir = os.path.join(results_base_dir, dirname)#{log_id}"
                             
@@ -196,16 +336,16 @@ def advdp_example(
                                 n_downstreams=n_downstreams,
                             )
                             if int(version) == 1:
-                                plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG',validation=validation, dataset_name='Adult', logfilename=logfilename)
+                                plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG',validation=validation, dataset_name=dataset, logfilename=logfilename)
                             else:
                                 for baseline_model in baselines:
                                     plot_generator.run_baseline_experiment(
-                                        model_name=baseline_model, verbose=verbose,validation=validation, dataset_name='Adult'
+                                        model_name=baseline_model, verbose=verbose,validation=validation, dataset_name=dataset
                                     )
                             if n_downstreams > 1:
                                 for i in range(n_downstreams):
                                     plot_savename = os.path.join(
-                                        results_dir, f"{log_id}_downstream_{i}.png"
+                                        results_dir, f"{log_id}_downstream_{i}.pdf"
                                     )
                                     plot_generator.make_plots(
                                         fontsize=12,
@@ -247,11 +387,11 @@ def advdp_example(
                                 solution = results.passed_safety.mean()
                                 success = 1 - results.failed.mean()
                                 
-                                result_log = os.path.join(results_base_dir, f"advdp_{dataset}_{epsilon}_{delta}_test.csv")
+                                result_log = os.path.join(results_base_dir, f"advdp_{dataset}_{epsilon}_{delta}_valid.csv")
                                 # check if file exists
                                 if not os.path.isfile(result_log):
                                     with open(result_log, "w") as myfile:
-                                        myfile.write("logid,avg_auc,avg_dp,solution,success,n_trials")
+                                        myfile.write("logid,avg_auc,avg_dp,solution,success,n_trials\n")
                                 with open(result_log, "a") as myfile:
                                     # record timestamp to find the logs, record average auc/deltaDP, NSF rate, success rate,n_trials
                                     row = ','.join((str(ts), str(avg_auc), str(avg_dp), str(solution), str(success), str(n_trials))) 
@@ -277,12 +417,12 @@ if __name__ == "__main__":
     epsilon = float(args.epsilon)
     delta = float(args.delta)
 
-    baselines = ["ICVAE"]#['FARE']#["LMIFR"]#["LAFTR"]#["CFAIR"]#["FCRL"]#["ICVAE"]#,,"VFAE", "VAE","controllable_vfae"]
+    baselines = ['FARE']#["LAFTR"]#["CFAIR"]#["FCRL"]#["ICVAE"]#["LMIFR"]#["ICVAE"]#,,"VFAE", "VAE","controllable_vfae"]
 
     performance_metric="dp"
 
     results_base_dir = f"/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults"
-    dataset = ADULTS
+    dataset = HEALTH
     advdp_example(
         spec_rootdir="./SeldonianExperimentSpecs/advdp/spec",
         results_base_dir=results_base_dir,

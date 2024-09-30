@@ -103,13 +103,24 @@ class PytorchCFair(SupervisedPytorchBaseModel):
         # mus = [1e-1,1e-2]
         # lrs = [1]
 
+        # Tuning
+
+        # mus = [1e-4, 1e-3, 1e-2, 1e-1]
+        # lrs = [1e-4, 1e-3, 1e-2, 1e-1]
+
+        # Health ALL
+        mus = [1e-2]
+        lrs = [1e-1]
+
+        ##############
+
         # Adult 0.16
         # mus = [1e-2]
         # lrs = [1e-2]
 
         # # Others
-        mus = [1e-1]
-        lrs = [1]
+        # mus = [1e-1]
+        # lrs = [1]
 
 
         num_epochs = 500

@@ -108,22 +108,36 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
         # sample
-        # alphas = [1e-4,1e-3]#, 1e-3]
-        # betas = [1e-4,1e-3]#, 1e-3]
-        # gammas = [1e-4,1e-3]#, 1e-3]
-        # lr_advs = [1e-4,1e-3]
+        
+        # 0.001	0.0001	0.0001	0.01	0.0001
+
+        # HEALTH 0.04
+        # alphas = [1e-4]#, 1e-3]
+        # betas = [1e-4]#,1e-3]#, 1e-3]
+        # gammas = [1e-3]#,1e-3]#, 1e-3]
+        # lr_advs = [1e-4]
+        # lrs = [1e-2]
+        # num_epochs_l = [1000]
+        # adv_rounds_l = [2]
+
+        # HEALTH 0.08, 0.12, 0.16
+        alphas = [1e-3]#, 1e-3]
+        betas = [1e-4]#,1e-3]#, 1e-3]
+        gammas = [1e-4]#,1e-3]#, 1e-3]
+        lr_advs = [1e-4]
+        lrs = [1e-2]
+        num_epochs_l = [1000]
+        adv_rounds_l = [2]
+        ###############
+
+        # ADULTS
+        # alphas = [1e-4]#,1e-3]#, 1e-3]
+        # betas = [1e-4]#],1e-3]#, 1e-3]
+        # gammas = [1e-4]#,1e-3]#, 1e-3]
+        # lr_advs = [1e-4]#,1e-3]
         # lrs = [1e-4]#,1e-3,1e-2]
         # num_epochs_l = [1000]
         # adv_rounds_l = [5]#,2,5]
-
-
-        alphas = [1e-4]#,1e-3]#, 1e-3]
-        betas = [1e-4]#],1e-3]#, 1e-3]
-        gammas = [1e-4]#,1e-3]#, 1e-3]
-        lr_advs = [1e-4]#,1e-3]
-        lrs = [1e-4]#,1e-3,1e-2]
-        num_epochs_l = [1000]
-        adv_rounds_l = [5]#,2,5]
 
         if self.use_validation:
             repeats = 2
@@ -211,7 +225,7 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
                                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/laftr_new.csv'
+                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/laftr_health.csv'
                                             if not os.path.isfile(result_log):
                                                 with open(result_log, "w") as myfile:
                                                     myfile.write("param_search_id,auc,delta_dp,alpha,beta,gamma,lr,lr_adv,epoch,adv_rounds,dropout")

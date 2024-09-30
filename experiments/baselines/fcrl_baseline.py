@@ -104,6 +104,11 @@ class PytorchFCRLBaseline(SupervisedPytorchBaseModel):
         # betas = [1e-4]#,1e-3]#,1e-2,1e-1,1.0]#]#1e-1,]#1e-3,1e-2,
         # lrs = [1e-3]#,1e-3]#, 1e-4]#1e-4]
 
+        # HEALTH
+        betas = [1e-4]#,1e-3,1e-2,1e-1,1.0]#]
+        lrs = [1e-3]#,1e-4]#, 1e-4]#1e-4] 
+        num_epochs = 500  
+        ###########
         # Adult 0.04
         # betas = [1e-2]
         # lrs = [1e-3]
@@ -117,13 +122,10 @@ class PytorchFCRLBaseline(SupervisedPytorchBaseModel):
         # lrs = [1e-4]
 
         # Adult 0.16
-        betas = [1e-3]
-        lrs = [1e-3]
+        # betas = [1e-3]
+        # lrs = [1e-3]
 
-
-
-
-        num_epochs = 500
+        # num_epochs = 500
         print(
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )

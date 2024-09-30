@@ -9,14 +9,14 @@ from seldonian.utils.io_utils import load_pickle,save_pickle
 N=23700 # Clips off 5 samples (at random) to make total divisible by 150,
 # the desired batch size
 
-savename_features = './face_recog/features.pkl'
-savename_race_labels = './face_recog/race_labels.pkl'
-savename_age_labels = './face_recog/age_labels.pkl'
-savename_gender_labels = './face_recog/gender_labels.pkl'
-savename_sensitive_attrs = './face_recog/sensitive_attrs.pkl'
+savename_features = './face/features.pkl'
+savename_race_labels = './face/race_labels.pkl'
+savename_age_labels = './face/age_labels.pkl'
+savename_gender_labels = './face/gender_labels.pkl'
+savename_sensitive_attrs = './face/sensitive_attrs.pkl'
 
 print("loading data...")
-data = pd.read_csv('./face_recog/age_gender.csv')
+data = pd.read_csv('./face/age_gender.csv')
 # Shuffle data since it is in order of age, then gender
 data = data.sample(n=len(data),random_state=42).iloc[:N]
 # Convert pixels from string to numpy array

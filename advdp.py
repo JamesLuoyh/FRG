@@ -14,7 +14,7 @@ from seldonian.utils.io_utils import load_json, save_pickle, load_pickle
 import torch
 
 ADULTS = "adults"
-GERMAN = "german"
+HEALTH = "health"
 
 
 save_dir = "./SeldonianExperimentSpecs/advdp/spec"
@@ -22,13 +22,9 @@ os.makedirs(save_dir, exist_ok=True)
 
 if __name__ == "__main__":
     torch.manual_seed(2023)
-    dataname = ADULTS
-    adv_task = False
+    dataname = HEALTH
     if dataname == ADULTS:
-        if not adv_task:
-            metadata_pth = "./adults_vfae/metadata_vfae.json"
-        else:
-            metadata_pth = "./adults_vfae/metadata_adv.json"
+        metadata_pth = "./adults_vfae/metadata_vfae.json"
         data_pth = "./adults_vfae/vfae_adults.csv"
         x_dim = 117
         z_dim = 50
@@ -36,13 +32,14 @@ if __name__ == "__main__":
         bs = 1000
         n_epochs = 1000
         lr = 1e-4
-    elif dataname == GERMAN: # Not used 
-        data_pth = "../SeldonianEngine/static/datasets/supervised/german_credit/vfae_german.csv"
-        metadata_pth = "../SeldonianEngine/static/datasets/supervised/german_credit/metadata_vfae.json"
-        x_dim = 57
-        z_dim = 25
-        bs = 150
-        n_epochs = 150
+    elif dataname == HEALTH: # Not used 
+        metadata_pth = "./health/metadata_health_gender_age.json" #"./health/metadata_health_gender.json"
+        data_pth = "./health/health_normalized_gender_age.csv" # "./health/health_normalized_gender.csv"
+        x_dim = 121 # 130 # 123 if using age as senstive attribute
+        z_dim = 50
+        hidden_dim = 100
+        bs = 1000
+        n_epochs = 1000
         lr = 1e-4
     else:
         raise NotImplementedError
@@ -62,11 +59,12 @@ if __name__ == "__main__":
         file_type='csv')
 
 
-    epsilon = 0.04
+    epsilon = 0.16
     # constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
     constraint_strs = [f'DP_ADV <= {epsilon}']
-    deltas = [0.05] 
-    columns = ["M", "F"]
+    deltas = [0.1] 
+    columns = ["M", "F"] # for Adult
+    # columns = ["sexMALE", "sexFEMALE"]
     parse_trees = make_parse_trees_from_constraints(
         constraint_strs,deltas,regime=regime,
         sub_regime=sub_regime, columns=columns)
@@ -123,14 +121,9 @@ if __name__ == "__main__":
         },
         # batch_size_safety=2000
     )
-    if adv_task:
-        spec_save_name = os.path.join(
-            save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised_advtask.pkl"
-        )
-    else:
-        spec_save_name = os.path.join(
-            save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised.pkl"
-        )
+    spec_save_name = os.path.join(
+        save_dir, f"advdp_{dataname}_{epsilon}_{deltas[0]}_unsupervised.pkl"
+    )
     save_pickle(spec_save_name, spec)
     print(f"Saved Spec object to: {spec_save_name}")
 

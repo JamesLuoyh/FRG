@@ -538,6 +538,22 @@ def DP_Adv(model,theta,X,Y,**kwargs):
 	return max(abs(pr_s_0 - pr_s_1), abs(nr_s_0 - nr_s_1))
 
 
+def DP_Adv_multi_class(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().squeeze().numpy()
+	
+	y_ = (y_pred > 0.5).astype(np.float32)
+    
+    n_classes = S.shape[1]
+    S = np.argmax(S, axis=1)
+    g, uc = np.zeros([n_classes]), np.zeros([n_classes]) + 1e-15 # avoid division by 0
+    for i in range(S.shape[0]):
+        uc[S[i]] += 1.0
+        g[S[i]] += y_[i]
+    g = g / uc
+    return np.abs(np.max(g) - np.min(g))
+
+
 def Negative_Rate(model,theta,X,Y,**kwargs):
 	"""
 	Calculate negative rate
@@ -1041,7 +1057,7 @@ def vector_Pos_DP_Adv(model,theta,X,Y,**kwargs):
 	pos_s = np.where(s == 1)[0]
 	neg_s = np.where(s == 0)[0]
 
-	n_pairs = len(s)
+	n_pairs = len(10*s)
 	# boostrap n_pairs to evaluate DP based on each pair
 
 	pos_chosen = np.random.choice(pos_s, n_pairs, replace=True)
@@ -1085,9 +1101,8 @@ def vector_DP_Adv(model,theta,X,Y,**kwargs):
 	pos_s = np.where(s == 1)[0]
 	neg_s = np.where(s == 0)[0]
 
-	n_pairs = len(s)
+	n_pairs = len(2*s)
 	# boostrap n_pairs to evaluate DP based on each pair
-
 	pos_chosen = np.random.choice(pos_s, n_pairs, replace=True)
 	neg_chosen = np.random.choice(neg_s, n_pairs, replace=True)
 

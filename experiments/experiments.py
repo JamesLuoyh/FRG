@@ -279,7 +279,7 @@ class BaselineExperiment(Experiment):
             # resampled_filename = os.path.join(
             #     self.results_dir, "resampled_dataframes", f"trial_{trial_i}.pkl"
             # )
-            if dataset_name == 'Adult':
+            if dataset_name == 'adult':
                 if validation:
                     resampled_filename = os.path.join(
                         "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
@@ -288,6 +288,10 @@ class BaselineExperiment(Experiment):
                     resampled_filename = os.path.join(
                         "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
                     )
+            elif dataset_name == 'health':
+                resampled_filename = os.path.join(
+                    "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                )
             elif dataset_name == 'Face':
                 if validation:
                     resampled_filename = os.path.join(
@@ -403,6 +407,7 @@ class BaselineExperiment(Experiment):
             # )
         if self.model_name == 'FARE':
             from.baselines.fare import PytorchFARE
+            baseline_args["labels"] = resampled_dataset.labels
             baseline_model = PytorchFARE(device=device, **baseline_args)
         if self.model_name == 'CFAIR':
             from.baselines.cfair import PytorchCFair
@@ -700,7 +705,7 @@ class SeldonianExperiment(Experiment):
 
         if regime == "supervised_learning":
             if datagen_method == "resample":
-                if dataset_name == 'Adult':
+                if dataset_name == 'adult':
                     if validation:
                         resampled_filename = os.path.join(
                             "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
@@ -708,6 +713,10 @@ class SeldonianExperiment(Experiment):
                     else:
                         resampled_filename = os.path.join(
                             "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        )
+                elif dataset_name == 'health':
+                    resampled_filename = os.path.join(
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                 elif dataset_name == 'Face':
                     if validation:
@@ -720,10 +729,9 @@ class SeldonianExperiment(Experiment):
                         )
                 resampled_dataset = load_pickle(resampled_filename)
                 num_datapoints_tot = resampled_dataset.num_datapoints
-                if dataset_name == 'Adult':
+                if dataset_name == 'adult':
                     assert(num_datapoints_tot == 32827)
                 n_points = int(round(data_frac * num_datapoints_tot))
-
                 if verbose:
                     print(
                         f"Using resampled dataset {resampled_filename} "
@@ -736,14 +744,14 @@ class SeldonianExperiment(Experiment):
                             "Must have at least 1 data point to run a trial."
                         )
 
-                features = resampled_dataset.features
-                labels = resampled_dataset.labels
+                features = resampled_dataset.features.copy()
+                labels = resampled_dataset.labels.copy()
                 if len(labels.shape) > 1 and labels.shape[-1] > 1:
                     labels_l = []
                     for i in range(labels.shape[-1]):
                         labels_l.append(labels[:, i])
                     labels = labels_l
-                sensitive_attrs = resampled_dataset.sensitive_attrs
+                sensitive_attrs = resampled_dataset.sensitive_attrs.copy()
                 # Only use first n_points for this trial
                 if type(features) == list:
                     features = [x[:n_points] for x in features]
@@ -759,11 +767,10 @@ class SeldonianExperiment(Experiment):
                     f"Eval method {datagen_method} "
                     f"not supported for regime={regime}"
                 )
-
             dataset_for_experiment = SupervisedDataSet(
-                features=features,
-                labels=labels,
-                sensitive_attrs=sensitive_attrs,
+                features=features.copy(),
+                labels=labels.copy(),
+                sensitive_attrs=sensitive_attrs.copy(),
                 num_datapoints=n_points,
                 meta_information=resampled_dataset.meta_information,
             )
@@ -898,6 +905,8 @@ class SeldonianExperiment(Experiment):
                         performance = performances
                         perf_eval_kwargs['y'] = orig_y
                         # perf_eval_kwargs['y'] = labels
+                
+                print("features final", len(spec_for_experiment.dataset.features))
                 if verbose:
                     print(f"Performance = {performance}")
 

@@ -124,6 +124,39 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         # Data size: 1,0.65
         # Parameter search
 
+        # Health
+        # epsilon_elbo_l = [10.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        # epsilon_adv_l = [1e-3,1e-2,1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+
+        # lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        # lagrangian_l = [1.0]#0.5, 1.0]#0.1, 
+        # lr_l = [1e-3]#,1e-3]#, 1e-3]
+        # num_epochs_l = [500, 1000]
+        # adv_rounds_l = [1,2,5]
+
+        # 0.04
+        epsilon_elbo_l = [1.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+
+        lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
+        lr_l = [1e-3]#,1e-3]#, 1e-3]
+        num_epochs_l = [1000]
+        adv_rounds_l = [1]
+
+        # 0.08, 0.12, 0.16
+        # epsilon_elbo_l = [10.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        # epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+
+        # lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        # lagrangian_l = [1.0]#0.5, 1.0]#0.1, 
+        # lr_l = [1e-3]#,1e-3]#, 1e-3]
+        # num_epochs_l = [1000]
+        # adv_rounds_l = [2]
+
+        #####################
+
+        # Adult
         # 0.04 0.08 0.12
         # epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
         # epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
@@ -134,14 +167,14 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         # num_epochs_l = [10000]
         # adv_rounds_l = [1]
         # NEW
-        epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
-        epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+        # epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
+        # epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
 
-        lagrangian_elbo_l = [0.1]#1.0]#0.5]#, 1.0]#, 0.1]#
-        lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
-        lr_l = [1e-4]#, 1e-3]
-        num_epochs_l = [10000]
-        adv_rounds_l = [1]
+        # lagrangian_elbo_l = [0.1]#1.0]#0.5]#, 1.0]#, 0.1]#
+        # lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
+        # lr_l = [1e-4]#, 1e-3]
+        # num_epochs_l = [10000]
+        # adv_rounds_l = [1]
 
         #  0.16
         # epsilon_elbo_l = [10.0]#10.0]#10.0]#0.1, 1.0, 10]
@@ -265,7 +298,7 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr.csv'
+                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_health.csv'
                                             if not os.path.isfile(result_log):
                                                 with open(result_log, "w") as myfile:
                                                     myfile.write("param_search_id,auc,delta_dp,mi,mi_upper,epsilon_elbo,epsilon_adv,lagrangian_elbo,lagrangian,lr,epoch,adv_rounds,dropout")

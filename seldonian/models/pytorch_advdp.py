@@ -29,6 +29,7 @@ class PytorchADVDP(SupervisedPytorchBaseModel):
                  dropout_rate,
                  alpha_adv,
                  mi_version,
+                 alpha_sup=0,
                  activation=ReLU(),
                  ):
         self.vfae = VariationalFairAutoEncoder(x_dim,
@@ -41,6 +42,7 @@ class PytorchADVDP(SupervisedPytorchBaseModel):
                  z_dim,
                  dropout_rate,
                  mi_version,
+                 alpha_sup,
                  activation=ReLU())
         self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
         self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=alpha_adv)
@@ -61,6 +63,9 @@ class PytorchADVDP(SupervisedPytorchBaseModel):
         self.vfae.dropout = Dropout(dropout)
         self.vfae.dropout_rate = dropout
 
+    def set_alpha_sup(self, alpha_sup):
+        self.vfae.loss = VFAELoss(alpha=alpha_sup)
+
     def get_representations(self, X):
         return self.vfae.get_representations(X)
 
@@ -80,6 +85,7 @@ class VariationalFairAutoEncoder(Module):
                  z_dim,
                  dropout_rate,
                  mi_version,
+                 alpha_sup,
                  activation=ReLU()):
         super().__init__()
         self.y_out_dim = y_dim
@@ -96,7 +102,7 @@ class VariationalFairAutoEncoder(Module):
         self.s_dim = s_dim
         self.y_dim = y_dim
         self.z_dim = z_dim
-        self.loss = VFAELoss()
+        self.loss = VFAELoss(alpha=alpha_sup)
         self.mi_version = mi_version
 
 
@@ -122,7 +128,8 @@ class VariationalFairAutoEncoder(Module):
             perm = torch.randperm(size)
             idx = perm[:int((1-self.dropout_rate) * size)]
             inputs = inputs[idx]
-
+        # print(inputs.shape[1])
+        assert(inputs.shape[1] == 123)
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
         # print("self.s_dim", self.s_dim)
         # encode
@@ -143,11 +150,10 @@ class VariationalFairAutoEncoder(Module):
         log_p_u = self.pu.log_prob(s)
         # if self.mi_version == 2:
         #     self.mi_sz = log_p_adv - log_p_u
-
-        if self.mi_version == 1:
-            self.mi_sz = -0.5 * torch.sum(1 + z1_enc_logvar - z1_enc_mu ** 2 - z1_enc_logvar.exp(), dim = 1)
-        else:
-            raise NotImplementedError
+        # if self.mi_version == 1:
+        #     self.mi_sz = -0.5 * torch.sum(1 + z1_enc_logvar - z1_enc_mu ** 2 - z1_enc_logvar.exp(), dim = 1)
+        # else:
+        #     raise NotImplementedError
             
         outputs = {
             # predictive outputs
@@ -253,8 +259,7 @@ class VFAELoss(Module):
         loss = reconstruction_loss + kl_loss_z1
         loss /= len(y)
         # loss *= 0.1
-
-        # loss += self.alpha * supervised_loss
+        loss += self.alpha * supervised_loss
         return loss
 
     @staticmethod

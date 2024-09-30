@@ -7,4 +7,11 @@ logs/
 # ignore pycache
 *.pyc
 
+# ignore datasets
+#
+health/*.csv
 
+face/*.csv
+face/*.pkl
+face/*.zip
+data.zip

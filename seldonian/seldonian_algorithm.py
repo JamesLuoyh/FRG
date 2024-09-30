@@ -70,7 +70,6 @@ class SeldonianAlgorithm():
 
 			) = self.candidate_safety_split(
 					self.spec.frac_data_in_safety)
-			print(self.n_candidate, self.n_safety)
 			self.candidate_dataset = SupervisedDataSet(
 		        features=self.candidate_features,
 		        labels=self.candidate_labels,
@@ -337,7 +336,6 @@ class SeldonianAlgorithm():
 				# Get the demorgraphic parity
 				print(y_pred)
 				print("Fairness test Demorgraphic Parity:",objectives.demographic_parity(y_pred, test_sensitive))
-
 		st = self.safety_test()
 		passed_safety = st.run(candidate_solution,
 			batch_size_safety=batch_size_safety)

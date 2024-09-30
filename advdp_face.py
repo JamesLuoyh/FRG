@@ -51,7 +51,9 @@ regime='supervised_learning'
 psi = 1.18
 deltas = [0.3]
 
-constraint_strs = [f'VAE <= {psi}']
+epsilon = 0.16
+    # constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
+constraint_strs = [f'DP_ADV <= {epsilon}']
 
 print("Making parse trees for constraint(s):")
 print(constraint_strs," with deltas: ", deltas)
@@ -111,7 +113,7 @@ spec = SupervisedSpec(
     batch_size_safety=237
 )
 spec_save_name = os.path.join(
-  save_dir, f"unsupervised_cnn_vfae_mutual_information_{psi}.pkl"
+  save_dir, f"face_{epsilon}_{psi}.pkl"
 )
 save_pickle(spec_save_name, spec)
 print(f"Saved Spec object to: {spec_save_name}")

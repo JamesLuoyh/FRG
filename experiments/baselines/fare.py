@@ -195,8 +195,6 @@ def downstream_prediction(y_train, y_test, batch_size, z_train, z_test, hidden_d
     z_train_rep = torch.from_numpy(z_train).float()
     z_test_rep = torch.from_numpy(z_test).float().to(device)
 
-    print(z_train_rep.shape)
-    print(y_train_label.shape)
     train = torch.utils.data.TensorDataset(y_train_label, z_train_rep)
     trainloader = torch.utils.data.DataLoader(
         train, batch_size=batch_size, shuffle=True
@@ -344,8 +342,9 @@ class PytorchFARE(SupervisedPytorchBaseModel):
             dropout_rate,
             lr,
             downstream_bs,
+            labels,
             use_validation=False,
-            activation=ReLU()
+            activation=ReLU(),
         ):
         self.vfae = FARE(x_dim,
             s_dim,
@@ -365,6 +364,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
         self.downstream_bs = downstream_bs
         # self.adv_loss = BCELoss()
         self.use_validation = use_validation
+        self.labels = labels
         return self.vfae
 
 
@@ -375,20 +375,22 @@ class PytorchFARE(SupervisedPytorchBaseModel):
     def train(self, X_train, Y_train, batch_size, num_epochs,data_frac, n_valid, X_test):
         x, s, y = X_train[:,:self.x_dim], X_train[:,self.x_dim:self.x_dim+self.s_dim], X_train[:,-self.y_dim:]
         x_test, s_test, y_test = X_test[:,:self.x_dim], X_test[:,self.x_dim:self.x_dim+self.s_dim], X_test[:,-self.y_dim:]
+        y_1 = self.labels[:len(x), 0:1]
+        y_1_test = self.labels[len(x):, 0:1]
         data = {}
         data['train'] = x, s, y#[:-n_valid],s[:-n_valid],y[:-n_valid]
         data['test'] = x_test, s_test, y_test#x[-n_valid:],s[-n_valid:],y[-n_valid:]
         meta = {}
-        meta['ft_pos'] = {
-            'age': 0, 'fnlwgt': 1, 'education-num': 2, 'capital-gain': 3, 'capital-loss': 4, 'hrs-wk': 5,
-            'workclass': (6, 12),
-            'education': (13, 28),
-            'marital-status': (29, 35),
-            'occupation': (36, 49),
-            'relationship': (50, 55),
-            'race': (56, 60),
-            'native-country': (61, 101)
-        }
+        meta['ft_pos'] = {}
+        #     'age': 0, 'fnlwgt': 1, 'education-num': 2, 'capital-gain': 3, 'capital-loss': 4, 'hrs-wk': 5,
+        #     'workclass': (6, 12),
+        #     'education': (13, 28),
+        #     'marital-status': (29, 35),
+        #     'occupation': (36, 49),
+        #     'relationship': (50, 55),
+        #     'race': (56, 60),
+        #     'native-country': (61, 101)
+        # }
         data, cat_pos, embeddings = prep_data(data, meta)
 
         data_embed, cat_pos_embed, embeddings = data, cat_pos, embeddings # use the same dataset
@@ -406,7 +408,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     z_train = np.concatenate((z_train,z_val), axis=0)
                     print(z_train.shape)
                     # predict the sensitive attribute
-                    proba_test = downstream_prediction(s, s_test, len(z_train), z_train, z_test, z_train.shape[1], self.device, 5, 1e-4, self.y_dim)
+                    proba_test = downstream_prediction(s, s_test, len(z_train), z_train, z_test, z_train.shape[1], self.device, 10, 1e-3, self.y_dim)
                     y_hat = (proba_test > 0.5).astype(np.float32)
                     auc = roc_auc_score(s_test, y_hat)
                     f1 = f1_score(s_test, y_hat)
@@ -419,7 +421,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     eodd_test = utils.equalized_odds(proba_test, s_test, **kwargs)
                     diff_downstream_preference = {'auc': auc, 'acc':acc, 'f1':f1, 'dp':dp_test, 'eopp':eopp_test, 'eodd':eodd_test}
                     
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_alternative_downstream.csv'
+                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_health_downstream_2.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,max_k,min_ni,alpha")
@@ -432,6 +434,34 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     df.loc[len(df)] = diff_downstream_preference
                     df.to_csv(result_log, index=False)
                     
+
+                    ## predict alternative labels
+                    proba_test = downstream_prediction(y_1, y_1_test, len(z_train), z_train, z_test, z_train.shape[1], self.device, 10, 1e-3, self.y_dim)
+                    y_hat = (proba_test > 0.5).astype(np.float32)
+                    auc = roc_auc_score(y_1_test, y_hat)
+                    f1 = f1_score(y_1_test, y_hat)
+                    acc = accuracy_score(y_1_test, y_hat)
+                    kwargs = {}
+                    kwargs['X'] = X_test
+                    proba_test = None, None, proba_test
+                    dp_test = utils.demographic_parity(proba_test, y_1_test, **kwargs)
+                    eopp_test = utils.equal_opp(proba_test, y_1_test, **kwargs)
+                    eodd_test = utils.equalized_odds(proba_test, y_1_test, **kwargs)
+                    diff_downstream_preference = {'auc': auc, 'acc':acc, 'f1':f1, 'dp':dp_test, 'eopp':eopp_test, 'eodd':eodd_test}
+                    
+                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_health_downstream_3.csv'
+                    if not os.path.isfile(result_log):
+                        with open(result_log, "w") as myfile:
+                            myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,max_k,min_ni,alpha")
+                    df = pd.read_csv(result_log)
+                    diff_downstream_preference['param_search_id'] = param_search_id
+                    diff_downstream_preference['max_k'] = max_k
+                    diff_downstream_preference['min_ni'] = min_ni
+                    diff_downstream_preference['alpha'] = alpha
+                    # print(row)
+                    df.loc[len(df)] = diff_downstream_preference
+                    df.to_csv(result_log, index=False)
+
                     embeddings['z_train'] = z_train 
                     embeddings['z_val'] = z_val 
                     embeddings['z_test'] = z_test 
@@ -452,7 +482,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     print(dp_ub)
                     print('TREE DONE.')
                     test_performance['dp_ub'] = dp_ub[0]
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare.csv'
+                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_health_downstream_1.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,dp_ub,max_k,min_ni,alpha")

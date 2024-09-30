@@ -15,9 +15,9 @@ from seldonian.utils.io_utils import save_pickle
 from .experiments import BaselineExperiment, SeldonianExperiment
 from .utils import generate_resampled_datasets
 
-seldonian_model_set = set(["FRG", "qsa","headless_qsa", "sa", "qsa_cvfae", "qsa_icvae", "qsa_fcrl"])
+seldonian_model_set = set(["FRG", "FRG_supervised", "qsa","headless_qsa", "sa", "qsa_cvfae", "qsa_icvae", "qsa_fcrl"])
 plot_colormap = matplotlib.cm.get_cmap("tab10")
-marker_list = ["s", "p", "d", "*", "x", "h", "+"]
+marker_list = ["s", "p", "d", "*", "x", "h", "+", 'o']
 
 
 class PlotGenerator:
@@ -721,11 +721,13 @@ class SupervisedPlotGenerator(PlotGenerator):
             # Generate n_trials resampled datasets of full length
             # These will be cropped to data_frac fractional size
             print("generating resampled datasets")
-            if dataset_name == 'Adult':
+            if dataset_name == 'adult':
                 if validation:
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
                 else:
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
+            if dataset_name == 'health':
+                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
@@ -824,6 +826,8 @@ class SupervisedPlotGenerator(PlotGenerator):
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", self.spec.frac_data_in_safety)
                 else:
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
+            if dataset_name == 'health':
+                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
