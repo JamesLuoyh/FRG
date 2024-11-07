@@ -11,7 +11,7 @@ import experiments.utils as utils
 import os
 import time
 from torch.nn import init
-    
+
 class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
     """
     Implementation of the ICVAE
@@ -88,10 +88,27 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
 
+
+        # Income 
+
+        # num_epochs_l = [500]#,100]#00]#,30,60,90]#10,20]#30,60,90]
+        # lr_l = [1e-3,1e-2,1e-4]#, 1e-3]#, , [1e-2, 1e-3]#
+        # lam_l = [0.1,1.0,10]
+
+        # Above 0.16
+        num_epochs_l = [500]
+        lr_l = [1e-2]
+        lam_l = [0.1]
+
+        # 0.16
+        # num_epochs_l = [500]
+        # lr_l = [1e-4]
+        # lam_l = [0.1]
+
         # Health
-        num_epochs_l = [1000]
-        lr_l = [1e-3]#, 1e-2, 1e-4]
-        lam_l = [1.0] #0.1, 1.0, 10]
+        # num_epochs_l = [1000]
+        # lr_l = [1e-3]#, 1e-2, 1e-4]
+        # lam_l = [1.0] #0.1, 1.0, 10]
 
         
         ##### ADULT
@@ -174,7 +191,7 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cvib_supervised.csv'
+                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cvib_income_sup.csv'
                             if not os.path.isfile(result_log):
                                 with open(result_log, "w") as myfile:
                                     myfile.write("param_search_id,auc,delta_dp,mi,lam,lr,epoch,dropout")
@@ -427,7 +444,7 @@ class VFAELoss(Module):
         # # becomes kl between z2 and a standard normal when passing zeros
         loss = (recons_loss + kl_loss_z1) / len(y)
 
-        return loss #+ supervised_loss
+        return loss + 10 * supervised_loss
 
     @staticmethod
     def _kl_gaussian(logvar_a, mu_a, logvar_b, mu_b):

@@ -104,10 +104,22 @@ class PytorchFCRLBaseline(SupervisedPytorchBaseModel):
         # betas = [1e-4]#,1e-3]#,1e-2,1e-1,1.0]#]#1e-1,]#1e-3,1e-2,
         # lrs = [1e-3]#,1e-3]#, 1e-4]#1e-4]
 
-        # HEALTH
-        betas = [1e-4]#,1e-3,1e-2,1e-1,1.0]#]
+
+        # Income
+
+        # above 0.32
+        # 0.0001,500,0.3,0.001
+        betas = [1e-4]#1e-4,1e-3,1e-2,1e-1,1.0]#]
         lrs = [1e-3]#,1e-4]#, 1e-4]#1e-4] 
-        num_epochs = 500  
+        num_epochs = 500 
+        # below 0.32
+        # betas = [1.0]#1e-4,1e-3,1e-2,1e-1,1.0]#]
+        # lrs = [1e-3]#,1e-4]#, 1e-4]#1e-4] 
+        # num_epochs = 500  
+        # HEALTH
+        # betas = [1e-4]#,1e-3,1e-2,1e-1,1.0]#]
+        # lrs = [1e-3]#,1e-4]#, 1e-4]#1e-4] 
+        # num_epochs = 500  
         ###########
         # Adult 0.04
         # betas = [1e-2]
@@ -198,7 +210,7 @@ class PytorchFCRLBaseline(SupervisedPytorchBaseModel):
                         # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                         # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                         # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                        result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fcrl.csv'
+                        result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fcrl_income.csv'
                         if not os.path.isfile(result_log):
                             with open(result_log, "w") as myfile:
                                 myfile.write("param_search_id,auc,acc,f1,delta_dp,mi,beta,epoch,dropout,lr")
@@ -343,6 +355,8 @@ class ContrastiveVariationalAutoEncoder(Module):
         self.vae_loss = self.loss(outputs, {'x': x, 's': s, 'y': y})
         
         kl_gaussian = self.kl_gaussian(z1_enc_logvar, z1_enc_mu)
+        if self.s_dim > 1:
+            s = torch.argmax(s, dim=1)
         nce_estimate = self._nce_estimator(x, s, z1_encoded)
 
         self.mi_sz = self.beta * kl_gaussian - self.lambda_ * nce_estimate
@@ -481,7 +495,6 @@ class CPC(Module):
             ReLU(),
             Linear(hidden_size, z_size),
         )
-
         # just make one transform
         self.f_z = Sequential(Linear(z_size, z_size))
         self.w_s = Parameter(data=torch.randn(c_size, z_size, z_size))

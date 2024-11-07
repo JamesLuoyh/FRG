@@ -18,6 +18,7 @@ import pandas as pd
 ADULTS = "adults"
 GERMAN = "german"
 HEALTH = "health"
+INCOME = "income"
 torch.manual_seed(2023)
 np.random.seed(2023)
 
@@ -25,7 +26,7 @@ def advdp_example(
     spec_rootdir,
     results_base_dir,
     constraints = [],
-    n_trials=1,
+    n_trials=2,
     data_fracs=np.logspace(-3,0,5),
     baselines = [],
     performance_metric="auc",
@@ -40,6 +41,7 @@ def advdp_example(
     data_fracs = [1]
     z_dim = 50
     dropout_rate = 0.3
+    inflate = 2.0#, 1.5, 2.5, 3
     
     device = torch.device(device_id)
     # model = PytorchADVDP(device, **{"x_dim": 117,
@@ -55,22 +57,136 @@ def advdp_example(
     #     "mi_version": 1}
     # )
 
-    if performance_metric == "auc":
-        perf_eval_fn = auc
-    elif performance_metric == "accuracy":
-        perf_eval_fn = probabilistic_accuracy
-    elif performance_metric == "dp":
-        perf_eval_fn = demographic_parity
-    else:
-        raise NotImplementedError(
-            "Performance metric must be 'auc' or 'accuracy' or 'dp' for this example")
     specfile = os.path.join(
         spec_rootdir,
         f"advdp_{dataset}_{epsilon}_{delta}_unsupervised.pkl"
     )
     
     
-    alpha_sup = 0
+    # INCOME
+    # alpha_l =  [1e-2]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1, 0.5, 1.0]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 10
+
+    # alpha_l =  [1e-2]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 10
+
+    
+    # alpha_l =  [1e-4,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 10
+
+    # alpha_l =  [1e-2]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2,1e-3]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5,1.0]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]#,5]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 5
+
+
+    # 0.24
+
+    # alpha_l =  [1e-4]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 2
+    
+    # alpha_l =  [1e-3]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 0
+
+    # 0.40
+    # alpha_l =  [1e-3]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 5
+    
+    # alpha_l =  [1e-3]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 0
+
+    #  0.48  
+    # alpha_l =  [1e-3]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 10
+
+    # alpha_l =  [1e-3]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [1]#, 2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 0
+
+    # 0.32
+
+    # alpha_l =  [1e-4]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-3]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [5]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 5
+
+    # alpha_l =  [1e-3]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-2]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.5]#,0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 0
+
+    # 0.16
+    # alpha_l =  [1e-2]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-3]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 1
+
+    # alpha_l =  [1e-2]#,1e-3,1e-2]#, 1e-4]
+    # alpha_lambda_l = [1e-3]#, 1e-3, 1e-2]#,1e-3,1e-2]#, 1e-3]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [0.1]#,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [500]#, 1000, 500]#00]#, 500, 1000]#, 2000]#00,1000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [2]#,2,5]#,2,5]#,2,5]#10]#, 2, 5]
+    # alpha_sup = 0
+
+    ############################################
+    # alpha_sup = 0
     # HEALTH
 
     # alpha_l =  [1e-4,1e-3]#, 1e-4]
@@ -91,13 +207,13 @@ def advdp_example(
     # alpha_sup = 0
 
     # supervised
-    alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
-    alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
-    alpha_adv_l = [1e-4]
-    lambda_init_l = [1.0]#,0.5,0.1]#, , 1.0]#, 0.5]#0.5
-    epochs_l = [2000]#, 1000]#, 1000, 10000]
-    adv_rounds = [2]
-    alpha_sup = 0
+    # alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
+    # alpha_lambda_l = [1e-4]#, 1e-4]#, 1e-4] 1e-4,
+    # alpha_adv_l = [1e-4]
+    # lambda_init_l = [1.0]#,0.5,0.1]#, , 1.0]#, 0.5]#0.5
+    # epochs_l = [2000]#, 1000]#, 1000, 10000]
+    # adv_rounds = [2]
+    # alpha_sup = 1
 
     # epsilon = 0.08
     # alpha_l = [1e-3]#,1e-3]#, 1e-4]#, 1e-4]
@@ -124,6 +240,7 @@ def advdp_example(
     # lambda_init_l = [0.5]#,0.1]#, , 1.0]#, 0.5]#0.5
     # epochs_l = [2000]#00,1000]#, 1000]#, 1000, 10000]
     # adv_rounds = [5]
+    # alpha_sup = 0
 
     # supervised
     # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
@@ -141,6 +258,7 @@ def advdp_example(
     # lambda_init_l = [1.0]#,0.1]#, , 1.0]#, 0.5]#0.5
     # epochs_l = [2000]#00,1000]#, 1000]#, 1000, 10000]
     # adv_rounds = [5]
+    # alpha_sup = 0
 
     # supervised
     # alpha_l =  [1e-3]#, 1e-4]#, 1e-4]
@@ -163,12 +281,13 @@ def advdp_example(
     
     # ADULT
     # epsilon = 0.04
-    # alpha_l =  [1e-3]
-    # alpha_lambda_l = [1e-3]
-    # alpha_adv_l = [1e-4]
-    # lambda_init_l = [1.0]
-    # epochs_l = [10000]
-    # adv_rounds = [1]
+    alpha_l =  [1e-3]
+    alpha_lambda_l = [1e-3]
+    alpha_adv_l = [1e-4]
+    lambda_init_l = [1.0]
+    epochs_l = [10000]
+    adv_rounds = [1]
+    alpha_sup = 0
 
     # epsilon = 0.4 supervised
     # alpha_l =  [1e-3]
@@ -194,6 +313,7 @@ def advdp_example(
     # lambda_init_l = [0.5]
     # epochs_l = [10000]
     # adv_rounds = [2]
+    # alpha_sup = 0
 
     # supervised
     # alpha_l =  [1e-3]
@@ -212,6 +332,7 @@ def advdp_example(
     # lambda_init_l = [0.5]
     # epochs_l = [10000]
     # adv_rounds = [5]
+    # alpha_sup = 0
 
     # epsilon = 0.12 supervised
     # Best
@@ -230,6 +351,7 @@ def advdp_example(
     # lambda_init_l = [1.0]
     # epochs_l = [10000]
     # adv_rounds = [1]
+    # alpha_sup = 0
 
     # epsilon = 0.16 supervised
     # alpha_l =  [1e-4]
@@ -248,17 +370,20 @@ def advdp_example(
     # epochs_l = [10000]
     # adv_rounds = [1, 2, 5]
 
+    if dataset == INCOME:
+        xticks = np.arange(0.16, 0.50, 0.08)
+    else:
+        xticks = np.arange(0.04, 0.17, 0.04)
 
     frac_data_in_safety = 0.25
-    n_downstreams= 1 if validation else 3
-    for lambda_init in lambda_init_l:
-        for alpha in alpha_l:
-            for alpha_lambda in alpha_lambda_l:
-                for alpha_adv in alpha_adv_l:
-                    for epochs in epochs_l:
+    n_downstreams= 1 if validation else 2
+    for epochs in epochs_l:
+        for lambda_init in lambda_init_l:
+            for alpha in alpha_l:
+                for alpha_lambda in alpha_lambda_l:
+                    for alpha_adv in alpha_adv_l:
                         for n_adv_rounds in adv_rounds:
                             spec = load_pickle(specfile)
-                            print(len(spec.dataset.meta_information['feature_col_names']))
                             spec.dataset.meta_information['self_supervised'] = True
                             spec.model.set_dropout(dropout_rate)
                             spec.model.set_alpha_sup(alpha_sup)
@@ -267,9 +392,10 @@ def advdp_example(
                             spec.optimization_hyperparams["alpha_theta"] = alpha
                             spec.optimization_hyperparams["alpha_lamb"] = alpha_lambda
                             spec.optimization_hyperparams["n_adv_rounds"] = n_adv_rounds
+                            spec.optimization_hyperparams['s_dim'] = spec.model.s_dim
                             spec.frac_data_in_safety = frac_data_in_safety
                             batch_epoch_dict = {
-                                1.0: [0,epochs],
+                                1.0: [spec.optimization_hyperparams['batch_size'],epochs],
                             }
                             spec.optimization_hyperparams["num_iters"] = epochs
                             if validation:
@@ -284,7 +410,7 @@ def advdp_example(
                                 results_dir = os.path.join(results_base_dir,
                                     f"{ts}_{log_id}")#
                             else:
-                                dirname = f"{dataset}_{delta}_full_metrics_unsupervised"
+                                dirname = f"{dataset}_{delta}_ablation_delta_supervised"
                 
                                 results_dir = os.path.join(results_base_dir, dirname)#{log_id}"
                             
@@ -319,7 +445,7 @@ def advdp_example(
                                 'y':test_labels,
                                 'performance_metric':['auc', 'acc', 'f1', 'dp', 'eo', 'eodd'],
                                 'device': torch.device(device),
-                                's_dim': orig_sensitive_attrs.shape[1]
+                                's_dim': spec.model.s_dim
                             }
                             plot_generator = SupervisedPlotGenerator(
                                 spec=spec,
@@ -336,7 +462,7 @@ def advdp_example(
                                 n_downstreams=n_downstreams,
                             )
                             if int(version) == 1:
-                                plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG',validation=validation, dataset_name=dataset, logfilename=logfilename)
+                                plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG_0.1_sup',validation=validation, dataset_name=dataset, logfilename=logfilename)
                             else:
                                 for baseline_model in baselines:
                                     plot_generator.run_baseline_experiment(
@@ -354,7 +480,8 @@ def advdp_example(
                                         prob_performance_below=[None, None, None, None, None, None],
                                         performance_yscale="linear",
                                         savename=plot_savename,
-                                        result_filename_suffix=f"_downstream_{i}"
+                                        result_filename_suffix=f"_downstream_{i}",
+                                        xticks=xticks
                                     )
                             else:
                                 plot_savename = os.path.join(
@@ -367,7 +494,8 @@ def advdp_example(
                                     prob_performance_below=[None, None, None, None, None, None],
                                     performance_yscale="linear",
                                     savename=plot_savename,
-                                    result_filename_suffix=""
+                                    result_filename_suffix="",
+                                    xticks=xticks
                                 )
                             if verbose and int(version) == 1:
                                 solution_dict = load_pickle(logfilename)
@@ -417,12 +545,12 @@ if __name__ == "__main__":
     epsilon = float(args.epsilon)
     delta = float(args.delta)
 
-    baselines = ['FARE']#["LAFTR"]#["CFAIR"]#["FCRL"]#["ICVAE"]#["LMIFR"]#["ICVAE"]#,,"VFAE", "VAE","controllable_vfae"]
+    baselines = ["FCRL"]#['FARE']#["ICVAE"]#["LMIFR"]#["LAFTR"]#["ICVAE"]#["CFAIR"]#['FARE']#["FCRL"]#["ICVAE"]#["ICVAE"]#,,"VFAE", "VAE","controllable_vfae"]
 
     performance_metric="dp"
 
     results_base_dir = f"/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults"
-    dataset = HEALTH
+    dataset = ADULTS #HEALTH
     advdp_example(
         spec_rootdir="./SeldonianExperimentSpecs/advdp/spec",
         results_base_dir=results_base_dir,

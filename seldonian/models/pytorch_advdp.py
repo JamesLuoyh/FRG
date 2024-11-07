@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Sequential, Module, Linear, ReLU, Dropout, BCELoss, CrossEntropyLoss, Sigmoid, Tanh
+from torch.nn import Sequential, Module, Linear, ReLU, Dropout, BCELoss, CrossEntropyLoss, Sigmoid, Tanh, Softmax
 from .pytorch_model import SupervisedPytorchBaseModel
 from math import pi, sqrt
 from torch.distributions import Bernoulli, Categorical
@@ -44,7 +44,10 @@ class PytorchADVDP(SupervisedPytorchBaseModel):
                  mi_version,
                  alpha_sup,
                  activation=ReLU())
-        self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
+        if s_dim > 1:
+            self.discriminator = DecoderMLPMulticlass(z_dim, z_dim, s_dim, activation).to(self.device)
+        else:
+            self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
         self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=alpha_adv)
         self.s_dim = s_dim
         self.mi_version = mi_version
@@ -128,15 +131,12 @@ class VariationalFairAutoEncoder(Module):
             perm = torch.randperm(size)
             idx = perm[:int((1-self.dropout_rate) * size)]
             inputs = inputs[idx]
-        # print(inputs.shape[1])
-        assert(inputs.shape[1] == 123)
+        assert(inputs.shape[1] == self.x_dim + self.s_dim + self.y_dim)
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
-        # print("self.s_dim", self.s_dim)
         # encode
         x_s = torch.cat([x, s], dim=1)
         # x_s = self.dropout(x_s)
         z1_encoded, z1_enc_logvar, z1_enc_mu = self.encoder_z1(x_s)
-
         z1_s = torch.cat([z1_encoded, s], dim=1)
         x_decoded = self.decoder_x(z1_s)
         y_decoded = self.decoder_y(z1_encoded)
@@ -146,8 +146,8 @@ class VariationalFairAutoEncoder(Module):
         else:
             p_adversarial = Categorical(probs=s_decoded)
             s = torch.argmax(s, dim=1)
-        log_p_adv = p_adversarial.log_prob(s)
-        log_p_u = self.pu.log_prob(s)
+        # log_p_adv = p_adversarial.log_prob(s)
+        # log_p_u = self.pu.log_prob(s)
         # if self.mi_version == 2:
         #     self.mi_sz = log_p_adv - log_p_u
         # if self.mi_version == 1:
@@ -225,6 +225,25 @@ class DecoderMLP(Module):
         return self.sigmoid(self.lin_out(x))
 
 
+class DecoderMLPMulticlass(Module):
+    """
+     Single hidden layer MLP used for decoding.
+    """
+
+    def __init__(self, in_features, hidden_dim, latent_dim, activation):
+        super().__init__()
+        self.lin_encoder = Linear(in_features, hidden_dim)
+        self.activation = activation
+        self.lin_out = Linear(hidden_dim, latent_dim)
+        self.softmax = Softmax(dim=1)
+
+    def forward(self, inputs):
+        x = self.lin_encoder(inputs)
+        x = self.activation(x)
+        
+        return self.softmax(self.lin_out(x))
+
+
 class VFAELoss(Module):
     """
     Loss function for training the Variational Fair Auto Encoder.
@@ -259,7 +278,10 @@ class VFAELoss(Module):
         loss = reconstruction_loss + kl_loss_z1
         loss /= len(y)
         # loss *= 0.1
-        loss += self.alpha * supervised_loss
+        # print("reconstruction_loss", reconstruction_loss/len(y))
+        # print("kl_loss_z1", kl_loss_z1/len(y))
+        # print("supervised_loss", supervised_loss)
+        loss += self.alpha * (supervised_loss)
         return loss
 
     @staticmethod

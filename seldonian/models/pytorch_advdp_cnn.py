@@ -5,7 +5,7 @@ from torch.distributions import Bernoulli, Categorical
 import torch.nn.functional as F
 
 
-class PytorchFacialVAE(SupervisedPytorchBaseModel):
+class PytorchAdvdpCNN(SupervisedPytorchBaseModel):
     """
     Implementation of the Variational Fair AutoEncoder.
     """
@@ -32,7 +32,7 @@ class PytorchFacialVAE(SupervisedPytorchBaseModel):
                  mi_version,
                  activation=nn.ReLU(),
                  ):
-        self.vfae = FacialVAE(x_dim,
+        self.vfae = AdvdpCNN(x_dim,
                 s_dim,
                 y_dim,
                 z1_enc_dim,
@@ -60,8 +60,12 @@ class PytorchFacialVAE(SupervisedPytorchBaseModel):
 
     def get_representations(self, X):
         return self.vfae.get_representations(X)
+        
+    def set_dropout(self, dropout):
+        self.vfae.dropout = nn.Dropout(dropout)
+        self.vfae.dropout_rate = dropout
 
-class FacialVAE(nn.Module):
+class AdvdpCNN(nn.Module):
     def __init__(self,
                 x_dim,
                 s_dim,
@@ -74,7 +78,7 @@ class FacialVAE(nn.Module):
                 dropout_rate,
                 mi_version,
                 activation=nn.ReLU()):
-        super(FacialVAE, self).__init__()
+        super(AdvdpCNN, self).__init__()
         self.latent_dim = z_dim
         self.x_dim = x_dim
         self.s_dim = s_dim
@@ -195,12 +199,12 @@ class FacialVAE(nn.Module):
         p_adversarial = Categorical(probs=s_decoded)
         s = torch.argmax(s, dim=1)
         log_p_adv = p_adversarial.log_prob(s)
-        log_p_u = self.pu.log_prob(s)
+        # log_p_u = self.pu.log_prob(s)
         
-        if self.mi_version == 1:
-            self.mi_sz = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
-        else:
-            raise NotImplementedError
+        # if self.mi_version == 1:
+        #     self.mi_sz = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+        # else:
+        #     raise NotImplementedError
         # if self.mi_version == 2:
         
         #   self.mi_sz = log_p_adv - log_p_u
@@ -217,12 +221,12 @@ class FacialVAE(nn.Module):
             'z1_enc_mu': mu,
         }
         self.vae_loss = self.loss_function(outputs, {'x': x, 's': s, 'y': y})
-        self.mi_sz = self.mi_sz.flatten()
+        # self.mi_sz = self.mi_sz.flatten()
         self.pred = y_decoded
         self.s = s
         self.z = z
         self.y_prob = y_decoded.squeeze()
-        return self.vae_loss, self.mi_sz, self.y_prob
+        return self.vae_loss, s_decoded, self.y_prob
 
     def loss_function(self, prediction, actual):
         """
@@ -240,9 +244,9 @@ class FacialVAE(nn.Module):
 
 
         kld_loss = torch.sum(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-        supervised_loss = self.bce(prediction['y_decoded'], y.unsqueeze(1))
+        supervised_loss = 10 * self.bce(prediction['y_decoded'], y.unsqueeze(1))
         loss = 0.1 * (recons_loss + kld_loss) / len(y)
-        return loss
+        return loss + supervised_loss
 
     def sample(self,
                num_samples,

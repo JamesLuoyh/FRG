@@ -1,8 +1,8 @@
 import torch
-from torch.nn import Sequential, Module, Linear, ReLU, Dropout, BCELoss, CrossEntropyLoss, Sigmoid
+from torch.nn import Sequential, Module, Linear, ReLU, Dropout, BCELoss, CrossEntropyLoss, Sigmoid, Softmax
 from seldonian.models.pytorch_model import SupervisedPytorchBaseModel
 from math import pi, sqrt
-from torch.distributions import Bernoulli
+from torch.distributions import Bernoulli, Categorical
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
@@ -67,9 +67,12 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         self.x_dim = x_dim
         self.lambda_init = lambda_init
         self.downstream_bs = downstream_bs
-        self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
+        if s_dim > 1:
+            self.discriminator = DecoderMLPMulticlass(z_dim, z_dim, s_dim, activation).to(self.device)
+        else:
+            self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
         self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=1e-4)
-        self.adv_loss = BCELoss()
+
         self.use_validation = use_validation
         self.epsilon = epsilon
         self.z_dim = z_dim
@@ -78,7 +81,10 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
 
     # set a prior distribution for the sensitive attribute for VAE case
     def set_pu(self, pu):
-        pu_dist = Bernoulli(probs=torch.tensor(pu).to(self.device))
+        if len(pu) > 1: 
+            pu_dist = Categorical(probs=torch.tensor(pu).to(self.device))
+        else:
+            pu_dist = Bernoulli(probs=torch.tensor(pu).to(self.device))
         self.vfae.set_pu(pu_dist)
         return
 
@@ -124,6 +130,38 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         # Data size: 1,0.65
         # Parameter search
 
+
+        # Income
+        # epsilon_elbo_l = [1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        # epsilon_adv_l = [1e-1, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+
+        # lagrangian_elbo_l = [0.5,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        # lagrangian_l = [0.5, 1.0]#0.1, 
+        # lr_l = [1e-3,1e-4]#,1e-3]#, 1e-3]
+        # num_epochs_l = [500]#, 1000]
+        # adv_rounds_l = [2,5]
+
+
+        # 1.0,0.1,0.5,0.5,0.001,500,5
+        # 0.16
+        epsilon_elbo_l = [1.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+
+        lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
+        lr_l = [1e-3]#,1e-3]#, 1e-3]
+        num_epochs_l = [500]#000]
+        adv_rounds_l = [5]
+        # # Above 0.16
+        # epsilon_elbo_l = [1.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        # epsilon_adv_l = [1e-2]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+
+        # lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        # lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
+        # lr_l = [1e-3]#,1e-3]#, 1e-3]
+        # num_epochs_l = [500]#000]
+        # adv_rounds_l = [2]
+
         # Health
         # epsilon_elbo_l = [10.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
         # epsilon_adv_l = [1e-3,1e-2,1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
@@ -135,14 +173,14 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         # adv_rounds_l = [1,2,5]
 
         # 0.04
-        epsilon_elbo_l = [1.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
-        epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
+        # epsilon_elbo_l = [1.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
+        # epsilon_adv_l = [1e-1]#, 1e-2] # We tune from 1e-3 to 1e-1. But 1e-3 performs poorly.
 
-        lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
-        lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
-        lr_l = [1e-3]#,1e-3]#, 1e-3]
-        num_epochs_l = [1000]
-        adv_rounds_l = [1]
+        # lagrangian_elbo_l = [0.5]#,1.0]#1.0]#0.5]#, 1.0]#, 0.1]#
+        # lagrangian_l = [0.5]#0.5, 1.0]#0.1, 
+        # lr_l = [1e-3]#,1e-3]#, 1e-3]
+        # num_epochs_l = [1000]
+        # adv_rounds_l = [1]
 
         # 0.08, 0.12, 0.16
         # epsilon_elbo_l = [10.0]#, 1.0, 10]#10.0]#10.0]#0.1, 1.0, 10]
@@ -298,7 +336,7 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_health.csv'
+                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_income_supervised.csv'
                                             if not os.path.isfile(result_log):
                                                 with open(result_log, "w") as myfile:
                                                     myfile.write("param_search_id,auc,delta_dp,mi,mi_upper,epsilon_elbo,epsilon_adv,lagrangian_elbo,lagrangian,lr,epoch,adv_rounds,dropout")
@@ -315,7 +353,13 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
         self.discriminator.train()
         self.optimizer_d.zero_grad()
         s_decoded = self.discriminator(self.pytorch_model.z)
-        discriminator_loss = self.adv_loss(s_decoded, self.pytorch_model.s)
+        if self.s_dim == 1:
+            loss = nn.BCELoss()
+            discriminator_loss = loss(s_decoded, self.pytorch_model.s)
+        else:
+            p_adversarial = Categorical(probs=s_decoded)
+            log_p_adv = p_adversarial.log_prob(self.pytorch_model.s)
+            discriminator_loss = -log_p_adv.mean(dim=0)
         discriminator_loss.backward()
         self.optimizer_d.step()
         self.discriminator.eval()
@@ -410,7 +454,11 @@ class LagrangianFairTransferableAutoEncoder(Module):
         y_decoded = self.decoder_y(z1_encoded)
         s_decoded = discriminator(z1_encoded)
         
-        p_adversarial = Bernoulli(probs=s_decoded)
+        if self.s_dim == 1:
+            p_adversarial = Bernoulli(probs=s_decoded)
+        else:
+            p_adversarial = Categorical(probs=s_decoded)
+            s = torch.argmax(s, dim=1)
         log_p_adv = p_adversarial.log_prob(s)
         log_p_u = self.pu.log_prob(s)
         self.mi_sz = log_p_adv - log_p_u
@@ -484,6 +532,24 @@ class DecoderMLP(Module):
         x = self.activation(self.lin_encoder(inputs))
         return self.sigmoid(self.lin_out(x))
 
+class DecoderMLPMulticlass(Module):
+    """
+     Single hidden layer MLP used for decoding.
+    """
+
+    def __init__(self, in_features, hidden_dim, latent_dim, activation):
+        super().__init__()
+        self.lin_encoder = Linear(in_features, hidden_dim)
+        self.activation = activation
+        self.lin_out = Linear(hidden_dim, latent_dim)
+        self.softmax = Softmax(dim=1)
+
+    def forward(self, inputs):
+        x = self.lin_encoder(inputs)
+        x = self.activation(x)
+        
+        return self.softmax(self.lin_out(x))
+
 
 class VFAELoss(Module):
     """
@@ -507,7 +573,7 @@ class VFAELoss(Module):
         :return: the loss value as Tensor
         """
         x, s, y = y_true['x'], y_true['s'], y_true['y']
-        x_s = torch.cat([x, s], dim=-1)
+
         device = y.device
         supervised_loss = self.bce(y_pred['y_decoded'], y.to(device))
         reconstruction_loss = F.binary_cross_entropy(y_pred['x_decoded'], x, reduction='sum')
@@ -522,7 +588,7 @@ class VFAELoss(Module):
         loss = reconstruction_loss + kl_loss_z1
         loss /= len(y)
         # loss *= 0.1 # this is to keep the step size smaller for the primary objective
-        # loss += self.alpha * supervised_loss
+        loss += 10 * supervised_loss # self.alpha
         loss += (kl_loss_z1 / len(y) - epsilon_elbo) * lagrangian_elbo
         loss += (mi_sz.mean() - epsilon_adv) * lagrangian
         return loss

@@ -540,18 +540,18 @@ def DP_Adv(model,theta,X,Y,**kwargs):
 
 def DP_Adv_multi_class(model,theta,X,Y,**kwargs):
 	_, prediction_adv, _ = model.predict(theta,X)
-	s = model.pytorch_model.s.cpu().squeeze().numpy()
-	
+	s = model.pytorch_model.s.cpu().numpy()
+	print('DP_Adv_multi_class', s.shape)
+	print('DP_Adv_multi_class', prediction_adv.shape)
 	y_ = (y_pred > 0.5).astype(np.float32)
-    
-    n_classes = S.shape[1]
-    S = np.argmax(S, axis=1)
-    g, uc = np.zeros([n_classes]), np.zeros([n_classes]) + 1e-15 # avoid division by 0
-    for i in range(S.shape[0]):
-        uc[S[i]] += 1.0
-        g[S[i]] += y_[i]
-    g = g / uc
-    return np.abs(np.max(g) - np.min(g))
+	n_classes = S.shape[1]
+	S = np.argmax(S, axis=1)
+	g, uc = np.zeros([n_classes]), np.zeros([n_classes]) + 1e-15 # avoid division by 0
+	for i in range(S.shape[0]):
+		uc[S[i]] += 1.0
+		g[S[i]] += y_[i]
+	g = g / uc
+	return np.abs(np.max(g) - np.min(g))
 
 
 def Negative_Rate(model,theta,X,Y,**kwargs):
@@ -1115,6 +1115,34 @@ def vector_DP_Adv(model,theta,X,Y,**kwargs):
 	dp = np.stack((dp, inverse_dp))
 	return np.amax(dp, 0)
 
+def vector_DP_Adv_multi_class(model,theta,X,Y,**kwargs):
+	_, prediction_adv, _ = model.predict(theta,X)
+	s = model.pytorch_model.s.cpu().numpy()
+	n_pairs = len(s)
+	# create samples for each classes
+	# boostrap n_pairs to evaluate DP based on each pair
+	assert(s.max()+1 == prediction_adv.shape[1])
+	s_dim = prediction_adv.shape[1]
+	s_classes = np.zeros((n_pairs, 1, s_dim))
+	for i in range(s_dim):
+		idx = np.where(s == i)[0]
+		idx_chosen = np.random.choice(idx, n_pairs, replace=True)
+		idx_labels = np.expand_dims(prediction_adv[idx_chosen], axis=1)
+		s_classes = np.concatenate((s_classes, idx_labels), axis=1)
+
+	# A hack for autograd.np. It does not allow inserting Box into np arrays, but allows concatenting Box.
+	# Thus, removing the initial np zeros array below.
+	s_classes = s_classes[:,1:]
+	# Get delta_DP for each target label
+	max_delta_dp = np.zeros(n_pairs)
+	for target in range(s_dim):
+		predictions = s_classes[:,:,target]
+
+		delta_dp = (np.max(predictions, axis=1) - np.min(predictions, axis=1))
+		max_delta_dp = np.max(np.stack((delta_dp, max_delta_dp)), axis=0)
+	return np.array(max_delta_dp)
+	
+
 def vector_Negative_Rate_Adv(model,theta,X,Y,**kwargs):
 	"""
 	Calculate negative rate
@@ -1480,6 +1508,7 @@ measure_function_vector_mapper = {
 	'DP_ADV':vector_DP_Adv,
 	'POS_DP_ADV':vector_Pos_DP_Adv,
 	'NEG_DP_ADV':vector_Neg_DP_Adv,
+	'DP_ADV_multi_class':vector_DP_Adv_multi_class,
 }
 
 measure_function_mapper = {
@@ -1499,4 +1528,5 @@ measure_function_mapper = {
 	'DP_ADV':DP_Adv,
 	'POS_DP_ADV':Pos_DP_Adv,
 	'NEG_DP_ADV':Neg_DP_Adv,
+	'DP_ADV_multi_class':DP_Adv_multi_class,
 }

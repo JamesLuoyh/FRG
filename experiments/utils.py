@@ -368,6 +368,9 @@ def multiclass_demographic_parity(y_pred, y, **kwargs):
 
 def demographic_parity(y_pred, y, **kwargs):
     # y_ = (1.0 / (1.0 + np.exp(-y_logits)) > 0.5).astype(np.float32)
+    s_dim = kwargs["s_dim"]
+    if s_dim > 1:
+        multiclass_demographic_parity(y_pred, y, **kwargs)
     loss, mi, y_prob = y_pred
     y_ = (y_prob > 0.5).astype(np.float32)
     X = kwargs["X"]

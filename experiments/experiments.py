@@ -98,6 +98,8 @@ class Experiment:
                                 trial_dir, file#f"epsilon_{epsilon:.4f}_trial_{trial_i}_downstream_{i}.csv"
                             )
                             df = pd.read_csv(filename)
+                            df['failed'] = df['demographic_parity'] > df['epsilon']
+
                             df_list[i].append(df)
         else:
             for root, dirs, files in os.walk(trial_dir):
@@ -279,18 +281,21 @@ class BaselineExperiment(Experiment):
             # resampled_filename = os.path.join(
             #     self.results_dir, "resampled_dataframes", f"trial_{trial_i}.pkl"
             # )
-            if dataset_name == 'adult':
-                if validation:
-                    resampled_filename = os.path.join(
-                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
-                    )
-                else:
-                    resampled_filename = os.path.join(
-                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
-                    )
+            if dataset_name == 'adults':
+                resampled_filename = os.path.join(
+                    "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adults", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                )
+                # else:
+                #     resampled_filename = os.path.join(
+                #         "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                #     )
             elif dataset_name == 'health':
                 resampled_filename = os.path.join(
                     "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                )
+            elif dataset_name == 'income':
+                resampled_filename = os.path.join(
+                    "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/income", "resampled_dataframes", f"trial_{trial_i}.pkl"
                 )
             elif dataset_name == 'Face':
                 if validation:
@@ -299,7 +304,7 @@ class BaselineExperiment(Experiment):
                     )
                 else:
                     resampled_filename = os.path.join(
-                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", "resampled_dataframes", f"trial_{trial_i}.pkl"
                     )
             resampled_dataset = load_pickle(resampled_filename)
             num_datapoints_tot = resampled_dataset.num_datapoints
@@ -359,6 +364,7 @@ class BaselineExperiment(Experiment):
         device = perf_eval_kwargs["device"]
         batch_size, n_epochs = batch_epoch_dict[data_frac]
         s_dim = spec.optimization_hyperparams.get('s_dim', 1)
+        print(" spec.optimization_hyperparams.get('s_dim', 1)",  spec.optimization_hyperparams.get('s_dim', 1))
         z_dim = spec.optimization_hyperparams["z_dim"]
         baseline_args = {"x_dim": spec.optimization_hyperparams.get("x_dim",0),
             "s_dim": s_dim,
@@ -399,14 +405,17 @@ class BaselineExperiment(Experiment):
             baseline_args["epsilon"] = spec.optimization_hyperparams["epsilon"]
             baseline_args["hidden_dim"] = spec.optimization_hyperparams["hidden_dim"]
             baseline_model = PytorchLMIFR(device=device, **baseline_args)
-            pu = np.mean(features[:, - s_dim - 1: -1])
+            pu = np.mean(features[:, - s_dim - 1: -1], axis=0)
             baseline_model.set_pu(pu)
             # perf_eval_kwargs['eval_batch_size'] = len(X_test_baseline)
             # y_pred = vae_predictions(
             #     baseline_model, solution, X_test_baseline, **perf_eval_kwargs
             # )
         if self.model_name == 'FARE':
-            from.baselines.fare import PytorchFARE
+            if s_dim > 1:
+                from.baselines.fare_multiclass import PytorchFARE
+            else:
+                from.baselines.fare import PytorchFARE
             baseline_args["labels"] = resampled_dataset.labels
             baseline_model = PytorchFARE(device=device, **baseline_args)
         if self.model_name == 'CFAIR':
@@ -423,7 +432,7 @@ class BaselineExperiment(Experiment):
             # y_pred = vae_predictions(model=baseline_model, solution=solution, X_test=X_test_baseline, **perf_eval_kwargs)
         if self.model_name == "FCRL":
             from .baselines.fcrl_baseline import PytorchFCRLBaseline
-            baseline_args["s_num"] = 2 # number of different sensitive groups
+            baseline_args["s_num"] = s_dim if s_dim > 1 else 2 # number of different sensitive groups
             baseline_args["nce_size"] = z_dim
             baseline_model = PytorchFCRLBaseline(device=device, **baseline_args)
         if self.model_name == "cnn_controllable_vfae" or self.model_name == "cnn_icvae" or self.model_name == "cnn_lmifr_all" or self.model_name == "cnn_vfae_baseline" or self.model_name == "cnn_vae" or self.model_name == 'random':
@@ -571,9 +580,9 @@ class BaselineExperiment(Experiment):
             for i in range(len(performance)):
                 if s_dim == 1:
                     dp = demographic_parity(y_pred[i], **perf_eval_kwargs)
-                    failed = dp > epsilon
                 else:
-                    raise NotImplementedError
+                    dp = multiclass_demographic_parity(y_pred[i], **perf_eval_kwargs)
+                failed = dp > epsilon
                 data = [spec.optimization_hyperparams["epsilon"], data_frac, trial_i, *(performance[i]), g, failed]
                 self.write_trial_result(data, colnames, trial_dir, downstream_i=i, verbose=kwargs["verbose"])
         else:
@@ -705,18 +714,22 @@ class SeldonianExperiment(Experiment):
 
         if regime == "supervised_learning":
             if datagen_method == "resample":
-                if dataset_name == 'adult':
-                    if validation:
-                        resampled_filename = os.path.join(
-                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
-                        )
-                    else:
-                        resampled_filename = os.path.join(
-                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
-                        )
+                if dataset_name == 'adults':
+                    # if validation:
+                    resampled_filename = os.path.join(
+                        "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adults", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                    )
+                    # else:
+                    #     resampled_filename = os.path.join(
+                    #         "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                    #     )
                 elif dataset_name == 'health':
                     resampled_filename = os.path.join(
                             "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                        )
+                elif dataset_name == 'income':
+                    resampled_filename = os.path.join(
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/income", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                 elif dataset_name == 'Face':
                     if validation:
@@ -725,12 +738,10 @@ class SeldonianExperiment(Experiment):
                         )
                     else:
                         resampled_filename = os.path.join(
-                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test", "resampled_dataframes", f"trial_{trial_i}.pkl"
+                            "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", "resampled_dataframes", f"trial_{trial_i}.pkl"
                         )
                 resampled_dataset = load_pickle(resampled_filename)
                 num_datapoints_tot = resampled_dataset.num_datapoints
-                if dataset_name == 'adult':
-                    assert(num_datapoints_tot == 32827)
                 n_points = int(round(data_frac * num_datapoints_tot))
                 if verbose:
                     print(
@@ -746,7 +757,7 @@ class SeldonianExperiment(Experiment):
 
                 features = resampled_dataset.features.copy()
                 labels = resampled_dataset.labels.copy()
-                if len(labels.shape) > 1 and labels.shape[-1] > 1:
+                if type(labels) != list and len(labels.shape) > 1 and labels.shape[-1] > 1:
                     labels_l = []
                     for i in range(labels.shape[-1]):
                         labels_l.append(labels[:, i])
@@ -856,11 +867,12 @@ class SeldonianExperiment(Experiment):
                     
                     model = SA.model
                     if spec.dataset.meta_information.get("self_supervised", False):
-                        # train downstream supervised model
+                        print("train downstream supervised model")
                         perf_eval_kwargs["downstream_bs"] = spec_for_experiment.optimization_hyperparams["downstream_bs"]
                         perf_eval_kwargs["eval_batch_size"] = spec_for_experiment.optimization_hyperparams["downstream_bs"]
                         perf_eval_kwargs["downstream_epochs"] = spec_for_experiment.optimization_hyperparams["downstream_epochs"]
                         perf_eval_kwargs["downstream_lr"] = spec_for_experiment.optimization_hyperparams["downstream_lr"]
+                        print("spec_for_experiment.optimization_hyperparams[z_dim]", spec_for_experiment.optimization_hyperparams["z_dim"])
                         perf_eval_kwargs["z_dim"] = spec_for_experiment.optimization_hyperparams["z_dim"]
                         perf_eval_kwargs["hidden_dim"] = spec_for_experiment.optimization_hyperparams["hidden_dim"]
                         perf_eval_kwargs["y_dim"] = spec_for_experiment.optimization_hyperparams["y_dim"]
@@ -972,7 +984,9 @@ class SeldonianExperiment(Experiment):
                         dp = demographic_parity(y_pred[i], **perf_eval_kwargs)
                         failed = dp > epsilon
                 else:
-                    raise NotImplementedError
+                    if solution_found and passed_safety:
+                        dp = multiclass_demographic_parity(y_pred[i], **perf_eval_kwargs)
+                        failed = dp > epsilon
                 data = [spec_for_experiment.optimization_hyperparams["epsilon"], data_frac, trial_i, *(performance[i]), passed_safety, g, failed]
                 self.write_trial_result(data, colnames, trial_dir, downstream_i=i, verbose=kwargs["verbose"])
         else:

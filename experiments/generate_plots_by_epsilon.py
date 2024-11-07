@@ -15,7 +15,7 @@ from seldonian.utils.io_utils import save_pickle
 from .experiments import BaselineExperiment, SeldonianExperiment
 from .utils import generate_resampled_datasets
 
-seldonian_model_set = set(["FRG", "FRG_supervised", "qsa","headless_qsa", "sa", "qsa_cvfae", "qsa_icvae", "qsa_fcrl"])
+seldonian_model_set = set(["FRG_0.1_sup", "FRG_0.1_unsup", "FRG_supervised", "qsa","headless_qsa", "sa", "qsa_cvfae", "qsa_icvae", "qsa_fcrl"])
 plot_colormap = matplotlib.cm.get_cmap("tab10")
 marker_list = ["s", "p", "d", "*", "x", "h", "+", 'o']
 
@@ -121,7 +121,8 @@ class PlotGenerator:
         include_legend=True,
         savename=None,
         prob_performance_below=[None],
-        result_filename_suffix=""
+        result_filename_suffix="",
+        xticks=None
     ):
         """Make the three plots from results files saved to
         self.results_dir
@@ -318,9 +319,9 @@ class PlotGenerator:
             # )
             for ax in [*ax_performances, ax_sr, ax_fr]:
                 ax.minorticks_on()
-                xticks = np.arange(0, 0.17, 0.04)
-                ax.xaxis.set_ticks(np.arange(0, 0.17, 0.04))
-                ax.set_xlim(0.03, 0.17)
+                
+                ax.xaxis.set_ticks(xticks)
+                ax.set_xlim(xticks[0]-0.01, xticks[-1] + 0.01)
                 # ax.xaxis.set_major_locator(locmaj)
                 # ax.xaxis.set_minor_locator(locmin)
                 # ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
@@ -721,18 +722,20 @@ class SupervisedPlotGenerator(PlotGenerator):
             # Generate n_trials resampled datasets of full length
             # These will be cropped to data_frac fractional size
             print("generating resampled datasets")
-            if dataset_name == 'adult':
-                if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
-                else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
+            if dataset_name == 'adults':
+                # if validation:
+                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adults", self.spec.frac_data_in_safety)
+                # else:
+                #     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
             if dataset_name == 'health':
                 generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
+            if dataset_name == 'income':
+                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/income", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
             else:
                 generate_resampled_datasets(dataset, self.n_trials, self.results_dir)
             print("Done generating resampled datasets")
@@ -821,18 +824,20 @@ class SupervisedPlotGenerator(PlotGenerator):
             # Generate n_trials resampled datasets of full length
             # These will be cropped to data_frac fractional size
             print("checking for resampled datasets")
-            if dataset_name == 'Adult':
-                if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult", self.spec.frac_data_in_safety)
-                else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
+            if dataset_name == 'adults':
+                # if validation:
+                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adults", self.spec.frac_data_in_safety)
+                # else:
+                #     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
             if dataset_name == 'health':
                 generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
+            if dataset_name == 'income':
+                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/income", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
                     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test", self.spec.frac_data_in_safety)
+                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
             print("Done checking for resampled datasets")
             print()
 

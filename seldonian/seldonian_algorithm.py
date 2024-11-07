@@ -13,9 +13,10 @@ from seldonian.models import objectives
 from seldonian.models.pytorch_vae import PytorchVFAE
 from seldonian.models.pytorch_cnn_vfae import PytorchFacialVAE
 from seldonian.models.pytorch_advdp import PytorchADVDP
+from seldonian.models.pytorch_advdp_cnn import PytorchAdvdpCNN
 import torch
 
-from seldonian.utils.alg_utils import train_downstream, downstream_predictions
+from seldonian.utils.alg_utils import train_downstream, downstream_predictions, train_downstream_multiclass
 
 class SeldonianAlgorithm():
 	def __init__(self,spec):
@@ -296,10 +297,12 @@ class SeldonianAlgorithm():
 				self.model.params_updated = True
 			self.model.pytorch_model.eval()
 			self.model.vfae.eval()
-			if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP):
+			if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP) or isinstance(self.model, PytorchAdvdpCNN):
 				X_train = self.candidate_features
 				x_dim = self.model.pytorch_model.x_dim
 				s_dim = self.model.pytorch_model.s_dim
+				print("self.spec.optimization_hyperparams[z_dim]", self.spec.optimization_hyperparams["z_dim"])
+				print("s_dim", s_dim)
 				Y_train_sensitive = self.candidate_features[:,x_dim:x_dim+s_dim]
 				
 				if s_dim == 1:
@@ -320,22 +323,29 @@ class SeldonianAlgorithm():
 				if not self.model.params_updated:
 					self.model.update_model_params(solution,**kwargs)
 					self.model.params_updated = True
-				self.model.discriminator = train_downstream(self.model, X_train, Y_train_sensitive, batch_size,
-                                        num_epochs, lr, z_dim, hidden_dim, y_dim, self.model.device)
-				X_test = self.safety_features
-				test_sensitive = self.safety_features[:,x_dim:x_dim+s_dim]
-				if s_dim == 1:
-						test_sensitive = test_sensitive.squeeze()
+				if s_dim > 1:
+					self.model.discriminator = train_downstream_multiclass(self.model, X_train, Y_train_sensitive, batch_size,
+											num_epochs, lr, z_dim, hidden_dim, s_dim, self.model.device)
+				else:
+					self.model.discriminator = train_downstream(self.model, X_train, Y_train_sensitive, batch_size,
+											num_epochs, lr, z_dim, hidden_dim, s_dim, self.model.device)
+					X_test = self.safety_features
+					test_sensitive = self.safety_features[:,x_dim:x_dim+s_dim]
 
-				if type(X_test) == list:
-					# For unsupervised learning, we use the sensitive attribute in features list
-					# We remove it for downstream prediction
-					X_test = X_test[0]
-					test_sensitive = test_sensitive[1]
-				y_pred = downstream_predictions(self.model, self.model.discriminator, X_test, len(X_test), y_dim, self.model.device)
-				# Get the demorgraphic parity
-				print(y_pred)
-				print("Fairness test Demorgraphic Parity:",objectives.demographic_parity(y_pred, test_sensitive))
+					if type(X_test) == list:
+						# For unsupervised learning, we use the sensitive attribute in features list
+						# We remove it for downstream prediction
+						X_test = X_test[0]
+						test_sensitive = test_sensitive[1]
+					y_pred = downstream_predictions(self.model, self.model.discriminator, X_test, len(X_test), y_dim, self.model.device)
+					# Get the demorgraphic parity
+					if s_dim == 1:
+						test_sensitive = test_sensitive.squeeze()
+					# else:
+					# 	test_sensitive = test_sensitive[:, 0]
+					# 	y_pred = y_pred.argmax(dim=-1) == 0
+					# 	print(y_pred, test_sensitive)
+					print("Fairness test Demorgraphic Parity:",objectives.demographic_parity(y_pred, test_sensitive))
 		st = self.safety_test()
 		passed_safety = st.run(candidate_solution,
 			batch_size_safety=batch_size_safety)

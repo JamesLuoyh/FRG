@@ -86,6 +86,57 @@ def train_downstream(model, X_train, Y_train, batch_size,
     downstream_model.eval()
     return downstream_model
 
+def train_downstream_multiclass(model, X_train, Y_train, batch_size,
+                     num_epochs, lr, z_dim, hidden_dim, y_dim, device):
+    print("Training downstream model...")
+    loss_list = []
+    accuracy_list = []
+    iter_list = []
+    x_train_tensor = torch.from_numpy(X_train)
+    y_train_label = torch.from_numpy(Y_train)
+    train = torch.utils.data.TensorDataset(x_train_tensor, y_train_label)
+    trainloader = torch.utils.data.DataLoader(
+        train, batch_size=batch_size, shuffle=True
+    )
+    activation = nn.ReLU()
+    criterion = nn.BCELoss()
+    model.pytorch_model.eval()
+    model.vfae.eval()
+    if hasattr(model, 'discriminator'):
+        model.discriminator.eval()
+    downstream_model = DecoderMLPMulticlass(z_dim, hidden_dim, y_dim, activation).to(device) # model.vfae.decoder_y
+    # downstream_model = model.vfae.decoder_y
+    print(
+        f"Running downstream gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
+    )
+    itot = 0
+    optimizer = torch.optim.Adam(downstream_model.parameters(), lr=lr)
+    downstream_model.train()
+    for epoch in range(num_epochs):
+        for i, (features, labels) in enumerate(trainloader):
+            # Load images
+            features = features.float().to(device)
+            labels = labels.to(device)
+
+            # Clear gradients w.r.t. parameters
+            optimizer.zero_grad()
+            # get representations
+            representations = model.get_representations(features)
+            # get prediction
+            y_pred = downstream_model.forward(representations)
+            # get loss
+            loss = criterion(y_pred, labels.float())
+            # loss backward
+
+            loss.backward()
+            optimizer.step()
+            if i % 10 == 0:
+                it = f"{i+1}/{len(trainloader)}"
+                print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{loss}")
+            itot += 1
+    downstream_model.eval()
+    return downstream_model
+
 def downstream_predictions(representation_model, downstream_model, X_test, batch_size, y_dim, device):
     N_eval = len(X_test)
     X_test = torch.from_numpy(X_test).float().to(device)
@@ -128,3 +179,22 @@ class DecoderMLP(nn.Module):
         x = self.activation(self.lin_encoder(inputs))
         # x = self.activation(self.lin_encoder_2(x))
         return self.sigmoid(self.lin_out(x))
+
+
+class DecoderMLPMulticlass(nn.Module):
+    """
+     Single hidden layer MLP used for decoding.
+    """
+
+    def __init__(self, in_features, hidden_dim, latent_dim, activation):
+        super().__init__()
+        self.lin_encoder = nn.Linear(in_features, hidden_dim)
+        self.activation = activation
+        self.lin_out = nn.Linear(hidden_dim, latent_dim)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, inputs):
+        x = self.lin_encoder(inputs)
+        x = self.activation(x)
+        
+        return self.softmax(self.lin_out(x))

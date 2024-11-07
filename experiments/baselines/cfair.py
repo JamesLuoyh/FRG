@@ -65,8 +65,6 @@ class PytorchCFair(SupervisedPytorchBaseModel):
 
     # set a prior distribution for the sensitive attribute for VAE case
     def set_pu(self, pu):
-        pu_dist = Bernoulli(probs=torch.tensor(pu).to(self.device))
-        self.vfae.set_pu(pu_dist)
         return
 
     def get_representations(self, X):
@@ -123,7 +121,7 @@ class PytorchCFair(SupervisedPytorchBaseModel):
         # lrs = [1]
 
 
-        num_epochs = 500
+        num_epochs = 5#00
         print(
             f"Running gradient descent with batch_size: {batch_size}, num_epochs={num_epochs}"
         )
@@ -196,7 +194,7 @@ class PytorchCFair(SupervisedPytorchBaseModel):
                         # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                         # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                         # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                        result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cfair.csv'
+                        result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cfair_income.csv'
                         if not os.path.isfile(result_log):
                             with open(result_log, "w") as myfile:
                                 myfile.write("param_search_id,auc,acc,f1,delta_dp,mu,epoch,lr")
@@ -264,6 +262,7 @@ class CFair(nn.Module):
         self.sensitive_cls = nn.ModuleList([nn.Linear(self.num_adversaries[-1], 2) for _ in range(self.num_classes)]).to(device)
 
     def forward(self, inputs):
+        print("self.s_dim", self.s_dim)
         x, s, y = inputs[:,:self.x_dim], inputs[:,self.x_dim:self.x_dim+self.s_dim], inputs[:,-self.y_dim:]
         y_mean = torch.mean(y)
         # encode
@@ -275,7 +274,7 @@ class CFair(nn.Module):
         reweight_attr_1_tensor = torch.tensor([1.0 / (1.0 - train_base_1), 1.0 / train_base_1])
         reweight_attr_tensors = [reweight_attr_0_tensor, reweight_attr_1_tensor]
 
-        x_s = torch.cat([x, s], dim=1)
+        # x_s = torch.cat([x, s], dim=1)
         h_relu = x
         for hidden in self.hiddens:
             h_relu = F.relu(hidden(h_relu))

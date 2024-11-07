@@ -15,6 +15,7 @@ import torch
 
 ADULTS = "adults"
 HEALTH = "health"
+INCOME = "income"
 
 
 save_dir = "./SeldonianExperimentSpecs/advdp/spec"
@@ -22,25 +23,43 @@ os.makedirs(save_dir, exist_ok=True)
 
 if __name__ == "__main__":
     torch.manual_seed(2023)
-    dataname = HEALTH
+    dataname = ADULTS
     if dataname == ADULTS:
         metadata_pth = "./adults_vfae/metadata_vfae.json"
         data_pth = "./adults_vfae/vfae_adults.csv"
         x_dim = 117
         z_dim = 50
         hidden_dim = 100
-        bs = 1000
+        bs = 0
         n_epochs = 1000
         lr = 1e-4
-    elif dataname == HEALTH: # Not used 
+        s_dim = 1
+        use_batches = False
+        constraint_type = 'DP_ADV'
+    elif dataname == HEALTH:
         metadata_pth = "./health/metadata_health_gender_age.json" #"./health/metadata_health_gender.json"
         data_pth = "./health/health_normalized_gender_age.csv" # "./health/health_normalized_gender.csv"
         x_dim = 121 # 130 # 123 if using age as senstive attribute
         z_dim = 50
         hidden_dim = 100
-        bs = 1000
+        bs = 0
         n_epochs = 1000
         lr = 1e-4
+        s_dim = 1
+        constraint_type = 'DP_ADV'
+        use_batches = False
+    elif dataname == INCOME: # Not used 
+        metadata_pth = "./income/metadata_income.json" #"./health/metadata_health_gender.json"
+        data_pth = "./income/income.csv" # "./health/health_normalized_gender.csv"
+        x_dim = 23
+        z_dim = 100
+        hidden_dim = 100
+        bs = 10000
+        n_epochs = 1000
+        lr = 1e-4
+        s_dim = 5
+        constraint_type = 'DP_ADV_multi_class'
+        use_batches = True
     else:
         raise NotImplementedError
     
@@ -61,8 +80,8 @@ if __name__ == "__main__":
 
     epsilon = 0.16
     # constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
-    constraint_strs = [f'DP_ADV <= {epsilon}']
-    deltas = [0.1] 
+    constraint_strs = [f'{constraint_type} <= {epsilon}']
+    deltas = [0.2] 
     columns = ["M", "F"] # for Adult
     # columns = ["sexMALE", "sexFEMALE"]
     parse_trees = make_parse_trees_from_constraints(
@@ -70,7 +89,7 @@ if __name__ == "__main__":
         sub_regime=sub_regime, columns=columns)
     device = torch.device(0)
     model = PytorchADVDP(device, **{"x_dim": x_dim,
-        "s_dim": 1,
+        "s_dim": s_dim,
         "y_dim": 1,
         "z1_enc_dim": 100,
         "z2_enc_dim": 100,
@@ -101,7 +120,7 @@ if __name__ == "__main__":
             'alpha_lamb'    : 1e-4,
             'beta_velocity' : 0.9,
             'beta_rmsprop'  : 0.95,
-            'use_batches'   : False,
+            'use_batches'   : use_batches,
             'batch_size'    : bs,
             'n_epochs'      : n_epochs,
             'num_iters'     : n_epochs,

@@ -1,8 +1,8 @@
 import torch
-from torch.nn import Sequential, Module, Linear, ReLU, Dropout, BCELoss, CrossEntropyLoss, Sigmoid
+from torch.nn import Sequential, Module, Linear, ReLU, Dropout, BCELoss, CrossEntropyLoss, Sigmoid, Softmax
 from seldonian.models.pytorch_model import SupervisedPytorchBaseModel
 from math import pi, sqrt
-from torch.distributions import Bernoulli
+from torch.distributions import Bernoulli, Categorical
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
@@ -60,7 +60,10 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
         self.s_dim = s_dim
         self.x_dim = x_dim
         self.downstream_bs = downstream_bs
-        self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
+        if s_dim > 1:
+            self.discriminator = DecoderMLPMulticlass(z_dim, z_dim, s_dim, activation).to(self.device)
+        else:
+            self.discriminator = DecoderMLP(z_dim, z_dim, s_dim, activation).to(self.device)
         self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=1e-4)
         self.adv_loss = BCELoss()
         self.use_validation = use_validation
@@ -111,6 +114,36 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
         
         # 0.001	0.0001	0.0001	0.01	0.0001
 
+        # alpha_sups = [1]#,5,10]
+        # alphas = [1e-3]
+        # betas = [1e-4,1e-3]#, 1e-3]
+        # gammas = [1e-4,1e-3]#, 1e-3]
+        # lr_advs = [1e-4]
+        # lrs = [1e-2]
+        # num_epochs_l = [500]
+        # adv_rounds_l = [2,5]
+
+        # # Income
+        # # 0.001,1,0.0001,0.001,0.01,0.0001,500,5
+        # # below 32
+        # alpha_sups = [1]#,5,10]
+        # alphas = [1e-3]
+        # betas = [1e-4]#, 1e-3]
+        # gammas = [1e-3]#, 1e-3]
+        # lr_advs = [1e-4]
+        # lrs = [1e-2]
+        # num_epochs_l = [500]
+        # adv_rounds_l = [5]
+        # above 32
+        # 0.001,1,0.001,0.0001,0.01,0.0001,500,2,0.3
+        alpha_sups = [1]#,5,10]
+        alphas = [1e-3]
+        betas = [1e-3]#, 1e-3]
+        gammas = [1e-4]#, 1e-3]
+        lr_advs = [1e-4]
+        lrs = [1e-2]
+        num_epochs_l = [500]
+        adv_rounds_l = [2]
         # HEALTH 0.04
         # alphas = [1e-4]#, 1e-3]
         # betas = [1e-4]#,1e-3]#, 1e-3]
@@ -121,13 +154,13 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
         # adv_rounds_l = [2]
 
         # HEALTH 0.08, 0.12, 0.16
-        alphas = [1e-3]#, 1e-3]
-        betas = [1e-4]#,1e-3]#, 1e-3]
-        gammas = [1e-4]#,1e-3]#, 1e-3]
-        lr_advs = [1e-4]
-        lrs = [1e-2]
-        num_epochs_l = [1000]
-        adv_rounds_l = [2]
+        # alphas = [1e-3]#, 1e-3]
+        # betas = [1e-4]#,1e-3]#, 1e-3]
+        # gammas = [1e-4]#,1e-3]#, 1e-3]
+        # lr_advs = [1e-4]
+        # lrs = [1e-2]
+        # num_epochs_l = [1]#000]
+        # adv_rounds_l = [2]
         ###############
 
         # ADULTS
@@ -143,96 +176,98 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
             repeats = 2
         else:
             repeats = 1
-        for alpha in alphas:
-            for beta in betas:
-                for gamma in gammas:
-                    for lr in lrs:
-                        for lr_adv in lr_advs:
-                            for num_epochs in num_epochs_l:
-                                for adv_rounds in adv_rounds_l:
-                                    param_search_id = int(time.time())
-                                    for repeat in range(repeats): # repeat the parameter search for 3 times
-                                        trainloader = torch.utils.data.DataLoader(
-                                            train, batch_size=batch_size, shuffle=True
-                                        )
-                                        self.vfae.reset_params(self.device)
-                                        itot = 0
-                                        self.optimizer = torch.optim.Adam(self.vfae.parameters(), lr=lr)
-                                        self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr_adv)
-                                        self.vfae.alpha = alpha
-                                        self.vfae.beta = beta
-                                        self.vfae.gamma = gamma
-                                        for epoch in range(num_epochs):
-                                            for i, (features, labels) in enumerate(trainloader):
-                                                self.discriminator.eval()
-                                                features = features.float().to(self.device)
-                                                labels = labels.to(self.device)
+        for alpha_sup in alpha_sups:
+            for alpha in alphas:
+                for beta in betas:
+                    for gamma in gammas:
+                        for lr in lrs:
+                            for lr_adv in lr_advs:
+                                for num_epochs in num_epochs_l:
+                                    for adv_rounds in adv_rounds_l:
+                                        param_search_id = int(time.time())
+                                        for repeat in range(repeats): # repeat the parameter search for 3 times
+                                            trainloader = torch.utils.data.DataLoader(
+                                                train, batch_size=batch_size, shuffle=True
+                                            )
+                                            self.vfae.reset_params(self.device)
+                                            itot = 0
+                                            self.optimizer = torch.optim.Adam(self.vfae.parameters(), lr=lr)
+                                            self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr_adv)
+                                            self.vfae.alpha = alpha
+                                            self.vfae.beta = beta
+                                            self.vfae.gamma = gamma
+                                            self.vfae.loss.alpha = alpha_sup
+                                            for epoch in range(num_epochs):
+                                                for i, (features, labels) in enumerate(trainloader):
+                                                    self.discriminator.eval()
+                                                    features = features.float().to(self.device)
+                                                    labels = labels.to(self.device)
 
-                                                # Clear gradients w.r.t. parameters
-                                                self.optimizer.zero_grad()
-                                                self.vfae.train()
-                                                self.pytorch_model.train()
-                                                # Forward pass to get output/logits
-                                                vae_loss, mi_sz, y_prob = self.pytorch_model(features, self.discriminator)
+                                                    # Clear gradients w.r.t. parameters
+                                                    self.optimizer.zero_grad()
+                                                    self.vfae.train()
+                                                    self.pytorch_model.train()
+                                                    # Forward pass to get output/logits
+                                                    vae_loss, mi_sz, y_prob = self.pytorch_model(features, self.discriminator)
 
-                                                # Getting gradients w.r.t. parameters
-                                                if itot % adv_rounds == 0:
-                                                    vae_loss.backward()
+                                                    # Getting gradients w.r.t. parameters
+                                                    if itot % adv_rounds == 0:
+                                                        vae_loss.backward()
 
-                                                    # Updating parameters
-                                                    self.optimizer.step()
-                                                    
-                                                # Update the adversary
-                                                self.update_adversary(features)
-                                                if i % 100 == 0:
-                                                    it = f"{i+1}/{len(trainloader)}"
-                                                    print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{vae_loss}")
-                                                itot += 1
-                                        # evaluate validation data
-                                        self.discriminator.eval()
-                                        self.vfae.eval()
-                                        self.pytorch_model.eval()
-                                        if self.use_validation:
-                                            kwargs = {
-                                                'downstream_lr'     : 1e-4,
-                                                'y_dim'             : 1,
-                                                'downstream_epochs' : 5,
-                                                'downstream_bs'     : self.downstream_bs,
-                                                's_dim'             : self.s_dim,
-                                                'z_dim'             : self.z_dim,
-                                                'hidden_dim'        : self.hidden_dim,
-                                                'device'            : self.device,
-                                                'X'                 : x_valid_tensor.cpu().numpy(),
-                                            }
+                                                        # Updating parameters
+                                                        self.optimizer.step()
+                                                        
+                                                    # Update the adversary
+                                                    self.update_adversary(features)
+                                                    if i % 100 == 0:
+                                                        it = f"{i+1}/{len(trainloader)}"
+                                                        print(f"Epoch, it, itot, loss: {epoch},{it},{itot},{vae_loss}")
+                                                    itot += 1
+                                            # evaluate validation data
+                                            self.discriminator.eval()
+                                            self.vfae.eval()
+                                            self.pytorch_model.eval()
+                                            if self.use_validation:
+                                                kwargs = {
+                                                    'downstream_lr'     : 1e-4,
+                                                    'y_dim'             : 1,
+                                                    'downstream_epochs' : 5,
+                                                    'downstream_bs'     : self.downstream_bs,
+                                                    's_dim'             : self.s_dim,
+                                                    'z_dim'             : self.z_dim,
+                                                    'hidden_dim'        : self.hidden_dim,
+                                                    'device'            : self.device,
+                                                    'X'                 : x_valid_tensor.cpu().numpy(),
+                                                }
 
-                                            x_valid_tensor = x_valid_tensor.float().to(self.device)
+                                                x_valid_tensor = x_valid_tensor.float().to(self.device)
 
-                                            # vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor, self.discriminator)
-                                            
-                                            # Train downstream model
-                                            y_pred = utils.unsupervised_downstream_predictions(self, self.get_model_params(), X_train[:-n_valid], Y_train[:-n_valid], X_valid, **kwargs)
-                                            x_valid_tensor = x_valid_tensor.float().to(self.device)
-                                            s_valid_tensor = s_valid_tensor.float().to(self.device)
-                                            y_valid_label = y_valid_label.float().to(self.device)
-                                            vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor, self.discriminator)
-                                            y_pred_all = vae_loss, mi_sz, y_pred
-                                            delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
-                                            y_hat = (y_pred > 0.5).astype(np.float32)
-                                            auc = roc_auc_score(Y_valid, y_hat)
-                                            f1 = f1_score(Y_valid, y_hat)
-                                            acc = accuracy_score(Y_valid, y_hat)
+                                                # vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor, self.discriminator)
+                                                
+                                                # Train downstream model
+                                                y_pred = utils.unsupervised_downstream_predictions(self, self.get_model_params(), X_train[:-n_valid], Y_train[:-n_valid], X_valid, **kwargs)
+                                                x_valid_tensor = x_valid_tensor.float().to(self.device)
+                                                s_valid_tensor = s_valid_tensor.float().to(self.device)
+                                                y_valid_label = y_valid_label.float().to(self.device)
+                                                vae_loss, mi_sz, y_prob = self.pytorch_model(x_valid_tensor, self.discriminator)
+                                                y_pred_all = vae_loss, mi_sz, y_pred
+                                                delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
+                                                y_hat = (y_pred > 0.5).astype(np.float32)
+                                                auc = roc_auc_score(Y_valid, y_hat)
+                                                f1 = f1_score(Y_valid, y_hat)
+                                                acc = accuracy_score(Y_valid, y_hat)
 
-                                            # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
-                                            # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
-                                            # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/laftr_health.csv'
-                                            if not os.path.isfile(result_log):
-                                                with open(result_log, "w") as myfile:
-                                                    myfile.write("param_search_id,auc,delta_dp,alpha,beta,gamma,lr,lr_adv,epoch,adv_rounds,dropout")
-                                            df = pd.read_csv(result_log)
-                                            row = {'param_search_id':param_search_id, 'auc': auc, 'delta_dp': delta_DP, 'alpha': alpha, 'beta':beta, 'gamma': gamma, 'lr': lr, 'lr_adv':lr_adv,'epoch': num_epochs, 'adv_rounds':adv_rounds, 'dropout':self.vfae.dropout.p}
-                                            df.loc[len(df)] = row
-                                            df.to_csv(result_log, index=False)
+                                                # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
+                                                # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
+                                                # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
+                                                result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/laftr_income.csv'
+                                                if not os.path.isfile(result_log):
+                                                    with open(result_log, "w") as myfile:
+                                                        myfile.write("param_search_id,auc,delta_dp,alpha,alpha_sup,beta,gamma,lr,lr_adv,epoch,adv_rounds,dropout")
+                                                df = pd.read_csv(result_log)
+                                                row = {'param_search_id':param_search_id, 'auc': auc, 'delta_dp': delta_DP, 'alpha': alpha, 'alpha_sup': alpha_sup, 'beta':beta, 'gamma': gamma, 'lr': lr, 'lr_adv':lr_adv,'epoch': num_epochs, 'adv_rounds':adv_rounds, 'dropout':self.vfae.dropout.p}
+                                                df.loc[len(df)] = row
+                                                df.to_csv(result_log, index=False)
 
     def update_adversary(self, features):
         self.pytorch_model.eval()
@@ -242,7 +277,13 @@ class PytorchLAFTR(SupervisedPytorchBaseModel):
         self.discriminator.train()
         self.optimizer_d.zero_grad()
         s_decoded = self.discriminator(self.pytorch_model.z)
-        discriminator_loss = self.adv_loss(s_decoded, self.pytorch_model.s)
+        if self.s_dim == 1:
+            loss = nn.BCELoss()
+            discriminator_loss = loss(s_decoded, self.pytorch_model.s)
+        else:
+            p_adversarial = Categorical(probs=s_decoded)
+            log_p_adv = p_adversarial.log_prob(self.pytorch_model.s)
+            discriminator_loss = -log_p_adv.mean(dim=0)
         discriminator_loss.backward()
         self.optimizer_d.step()
         self.discriminator.eval()
@@ -347,6 +388,8 @@ class LAFTR(Module):
         self.vae_loss = self.loss(outputs, {'x': x, 's': s, 'y': y})
         self.vae_loss += self.gamma * adv_loss
         self.pred = y_decoded
+        if self.s_dim > 1:
+            s = torch.argmax(s, dim=1)
         self.s = s
         self.z = z1_encoded
         self.y_prob = y_decoded.squeeze()
@@ -402,6 +445,23 @@ class DecoderMLP(Module):
         x = self.activation(self.lin_encoder(inputs))
         return self.sigmoid(self.lin_out(x))
 
+class DecoderMLPMulticlass(Module):
+    """
+     Single hidden layer MLP used for decoding.
+    """
+
+    def __init__(self, in_features, hidden_dim, latent_dim, activation):
+        super().__init__()
+        self.lin_encoder = Linear(in_features, hidden_dim)
+        self.activation = activation
+        self.lin_out = Linear(hidden_dim, latent_dim)
+        self.softmax = Softmax(dim=1)
+
+    def forward(self, inputs):
+        x = self.lin_encoder(inputs)
+        x = self.activation(x)
+        
+        return self.softmax(self.lin_out(x))
 
 class VFAELoss(Module):
     """

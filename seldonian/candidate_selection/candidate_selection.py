@@ -11,6 +11,7 @@ from torch import nn
 from seldonian.models.pytorch_vae import PytorchVFAE
 from seldonian.models.pytorch_cnn_vfae import PytorchFacialVAE
 from seldonian.models.pytorch_advdp import PytorchADVDP
+from seldonian.models.pytorch_advdp_cnn import PytorchAdvdpCNN
 
 
 from seldonian.models import objectives
@@ -204,9 +205,10 @@ class CandidateSelection(object):
 			stability_const = 1e-15
 			
 			if (isinstance(self.model, PytorchVFAE) or \
-				isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP)):
+				isinstance(self.model, PytorchFacialVAE) or isinstance(self.model, PytorchADVDP)\
+				or isinstance(self.model, PytorchAdvdpCNN)):
 				gd_kwargs['representation_learning'] = True
-				if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP):
+				if int(self.model.mi_version) > 1 or isinstance(self.model, PytorchADVDP) or isinstance(self.model, PytorchAdvdpCNN):
 					def update_adversary():
 						alg_utils.update_adversary(self.model, self.batch_features)
 					gd_kwargs['update_adversary'] = update_adversary
