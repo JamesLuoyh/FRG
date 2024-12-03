@@ -1,0 +1,7 @@
+{
+	"regime":"supervised_learning",
+	"sub_regime":"classification",
+	"all_col_names":["AGEP","SCHL","MAR","OCCP","POBP","RELP","WKHP","SEX","COW_1","COW_2","COW_3","COW_4","COW_5","COW_6","COW_7","COW_8","RAC1P_1","RAC1P_2","RAC1P_3","RAC1P_4","RAC1P_5","RAC1P_6","RAC1P_7","RAC1P_8","s_0","s_1","s_2","s_3","s_4","y","label"],
+	"label_col_names":["label", "MAR"],
+	"sensitive_col_names":["MAR"]
+}

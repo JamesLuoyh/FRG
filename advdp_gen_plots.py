@@ -26,7 +26,7 @@ def advdp_example(
     spec_rootdir,
     results_base_dir,
     constraints = [],
-    n_trials=2,
+    n_trials=20,
     data_fracs=np.logspace(-3,0,5),
     baselines = [],
     performance_metric="auc",
@@ -281,22 +281,22 @@ def advdp_example(
     
     # ADULT
     # epsilon = 0.04
-    alpha_l =  [1e-3]
-    alpha_lambda_l = [1e-3]
-    alpha_adv_l = [1e-4]
-    lambda_init_l = [1.0]
-    epochs_l = [10000]
-    adv_rounds = [1]
-    alpha_sup = 0
-
-    # epsilon = 0.4 supervised
     # alpha_l =  [1e-3]
     # alpha_lambda_l = [1e-3]
     # alpha_adv_l = [1e-4]
     # lambda_init_l = [1.0]
     # epochs_l = [10000]
     # adv_rounds = [1]
-    # alpha_sup = 0.1
+    # alpha_sup = 0
+
+    # epsilon = 0.4 supervised
+    alpha_l =  [1e-3]
+    alpha_lambda_l = [1e-3]
+    alpha_adv_l = [1e-4]
+    lambda_init_l = [1.0]
+    epochs_l = [10000]
+    adv_rounds = [1]
+    alpha_sup = 0.1
     
     # alpha_l =  [1e-3]#,1e-2]
     # alpha_lambda_l = [1e-3]#,1e-2]
@@ -410,7 +410,7 @@ def advdp_example(
                                 results_dir = os.path.join(results_base_dir,
                                     f"{ts}_{log_id}")#
                             else:
-                                dirname = f"{dataset}_{delta}_ablation_delta_supervised"
+                                dirname = f"{dataset}_{delta}_ablation_delta_supervised_{inflate}"
                 
                                 results_dir = os.path.join(results_base_dir, dirname)#{log_id}"
                             
@@ -462,7 +462,7 @@ def advdp_example(
                                 n_downstreams=n_downstreams,
                             )
                             if int(version) == 1:
-                                plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG_0.1_sup',validation=validation, dataset_name=dataset, logfilename=logfilename)
+                                plot_generator.run_seldonian_experiment(verbose=verbose, model_name='FRG_1.0_sup',validation=validation, dataset_name=dataset, logfilename=logfilename)
                             else:
                                 for baseline_model in baselines:
                                     plot_generator.run_baseline_experiment(
