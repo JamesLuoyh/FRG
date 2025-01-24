@@ -11,7 +11,7 @@ logs/
 #
 health/*.csv
 
-face/*.csv
-face/*.pkl
-face/*.zip
+examples/face_recog/face/*.csv
+examples/face_recog/face/*.pkl
+examples/face_recog/face/*.zip
 data.zip

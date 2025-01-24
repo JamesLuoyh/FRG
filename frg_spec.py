@@ -10,6 +10,7 @@ from seldonian.seldonian_algorithm import SeldonianAlgorithm
 from seldonian.parse_tree.parse_tree import (
     make_parse_trees_from_constraints)
 from seldonian.utils.io_utils import load_json, save_pickle, load_pickle
+import argparse
 
 import torch
 
@@ -22,8 +23,18 @@ save_dir = "./SeldonianExperimentSpecs/advdp/spec"
 os.makedirs(save_dir, exist_ok=True)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Description of your program')
+    parser.add_argument('--dataset', choices=[ADULTS, HEALTH, INCOME], help='config file path which stores the hyperparameters')
+    parser.add_argument('--epsilon', help='epsilon')
+    parser.add_argument('--delta', help='delta')
+
+    args = parser.parse_args()
+
     torch.manual_seed(2023)
-    dataname = ADULTS
+    dataname = args.dataset
+    epsilon = float(args.epsilon)
+    deltas = [float(args.delta)]
+    
     if dataname == ADULTS:
         metadata_pth = "./adults_vfae/metadata_vfae.json"
         data_pth = "./adults_vfae/vfae_adults.csv"
@@ -78,10 +89,8 @@ if __name__ == "__main__":
         file_type='csv')
 
 
-    epsilon = 0.16
     # constraint_strs = [f'max(abs((PR_ADV | [M]) - (PR_ADV | [F])),abs((NR_ADV | [M]) - (NR_ADV | [F]))) <= {epsilon}']
     constraint_strs = [f'{constraint_type} <= {epsilon}']
-    deltas = [0.2] 
     columns = ["M", "F"] # for Adult
     # columns = ["sexMALE", "sexFEMALE"]
     parse_trees = make_parse_trees_from_constraints(
@@ -145,19 +154,3 @@ if __name__ == "__main__":
     )
     save_pickle(spec_save_name, spec)
     print(f"Saved Spec object to: {spec_save_name}")
-
-    # SA = SeldonianAlgorithm(spec)
-    # passed_safety,solution = SA.run(debug=False,write_cs_logfile=True)
-    # if passed_safety:
-    #     print("Passed safety test.")
-    # else:
-    #     print("Failed safety test")
-    # st_primary_objective = SA.evaluate_primary_objective(theta=solution,
-    #     branch='safety_test')
-    # print("Primary objective evaluated on safety test:")
-    # print(st_primary_objective)
-
-    # parse_trees[0].evaluate_constraint(theta=model.get_model_params,dataset=dataset,
-    # model=model,regime='supervised_learning',
-    # branch='safety_test')
-    # print("VAE constraint", parse_trees[0].root.value)

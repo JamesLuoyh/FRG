@@ -47,7 +47,7 @@ def create_health_dataset(batch=64):
     # print(len(d.columns))
     d = d.fillna(-1)
     print(len(d.columns))
-    d.to_csv('health_normalized_gender_age_testing.csv', index=False, header=True)
+    d.to_csv('health_normalized_gender_age.csv', index=False, header=True)
     # print(d.columns)
     # x = d.to_numpy()[:-5]
     # print(x.shape)

@@ -1,0 +1,9 @@
+{
+    "alpha": [1e-3],
+    "alpha_lambda": [1e-2],
+    "alpha_adv": [1e-4],
+    "lambda_init": [0.5],
+    "epochs": [2000],
+    "adv_rounds": [2],
+    "alpha_sup": 0
+}

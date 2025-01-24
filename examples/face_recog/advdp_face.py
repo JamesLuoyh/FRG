@@ -23,7 +23,7 @@ savename_age_labels = './face/age_labels.pkl'
 savename_sensitive_attrs = './face/sensitive_attrs.pkl'
 savename_race_labels = './face/race_labels.pkl'
 
-save_dir = "./SeldonianExperimentSpecs/advdp/spec/"
+save_dir = "../../SeldonianExperimentSpecs/advdp/spec/"
 features = load_pickle(savename_features)
 age_labels = load_pickle(savename_age_labels)
 gender_labels = load_pickle(savename_gender_labels)
