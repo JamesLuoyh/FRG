@@ -157,11 +157,11 @@ class PytorchVFAE(SupervisedPytorchBaseModel):
                             y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                             delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                             auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                            df = pd.read_csv(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/validation_performance_VFAE.csv')
+                            df = pd.read_csv(f'./SeldonianExperimentResults/validation_performance_VFAE.csv')
                             row = {'data_frac':data_frac, 'auc': auc, 'delta_dp': delta_DP, 'lr':lr, 'beta': beta, 'gamma': gamma, 'epoch': num_epochs}
                             print(row)
                             df = df.append(row, ignore_index=True)
-                            df.to_csv(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/validation_performance_VFAE.csv', index=False)
+                            df.to_csv(f'./SeldonianExperimentResults/validation_performance_VFAE.csv', index=False)
 
 
 class VFAE(Module):

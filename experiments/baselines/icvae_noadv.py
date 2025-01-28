@@ -191,7 +191,7 @@ class PytorchICVAEBaseline(SupervisedPytorchBaseModel):
                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/cvib_income_sup.csv'
+                            result_log = f'./SeldonianExperimentResults/cvib_income_sup.csv'
                             if not os.path.isfile(result_log):
                                 with open(result_log, "w") as myfile:
                                     myfile.write("param_search_id,auc,delta_dp,mi,lam,lr,epoch,dropout")

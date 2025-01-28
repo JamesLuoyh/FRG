@@ -210,7 +210,7 @@ class PytorchFCRLBaseline(SupervisedPytorchBaseModel):
                         # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                         # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                         # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                        result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fcrl_income.csv'
+                        result_log = f'./SeldonianExperimentResults/fcrl_income.csv'
                         if not os.path.isfile(result_log):
                             with open(result_log, "w") as myfile:
                                 myfile.write("param_search_id,auc,acc,f1,delta_dp,mi,beta,epoch,dropout,lr")

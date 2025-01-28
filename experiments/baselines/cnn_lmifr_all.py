@@ -208,11 +208,11 @@ class PytorchCNNLMIFR(SupervisedPytorchBaseModel):
                                         y_pred_all = vae_loss, mi_sz, y_pred
                                         delta_DP = utils.multiclass_demographic_parity(y_pred_all, None, **kwargs)
                                         auc = roc_auc_score(Y_valid, y_pred)
-                                        df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_testing.csv')
+                                        df = pd.read_csv('./SeldonianExperimentResults/lmifr_testing.csv')
                                         row = {'data_frac':data_frac, 'auc': auc, 'delta_dp': delta_DP, 'mi': mi_sz.mean().item(), 'lr': lr, 'lrl':lrl, 'epsilon_elbo':epsilon_elbo, 'epsilon_adv':epsilon_adv,'lagrange':lagrangian_elbo, 'epochs':num_epochs, 'adv_rounds': adv_rounds}
                                         print(row)
                                         df = df.append(row, ignore_index=True)
-                                        df.to_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_testing.csv', index=False)
+                                        df.to_csv('./SeldonianExperimentResults/lmifr_testing.csv', index=False)
                 
 
     def update_adversary(self, features, sensitive, semi_labels):

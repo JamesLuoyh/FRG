@@ -179,11 +179,11 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                             delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                             # delta_DP = self.demographic_parity(self.vfae.y_prob, x_valid_tensor[:, self.x_dim:self.x_dim+self.s_dim])
                             auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                            df = pd.read_csv(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/validation_performance_ablation.csv')
+                            df = pd.read_csv(f'./SeldonianExperimentResults/validation_performance_ablation.csv')
                             row = {'data_frac':data_frac, 'auc': auc, 'delta_dp': delta_DP, 'mi': mi_sz.mean().item(), 'mi_upper': mi_sz_upper_bound.mean().item(), 'lr': lr, 'epsilon':epsilon_elbo, 'lagrange':lagrangian_elbo, 'epochs':num_epochs}
                             print(row)
                             df = df.append(row, ignore_index=True)
-                            df.to_csv(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/validation_performance_ablation.csv', index=False)
+                            df.to_csv(f'./SeldonianExperimentResults/validation_performance_ablation.csv', index=False)
 
 class LagrangianFairTransferableAutoEncoder(Module):
     """

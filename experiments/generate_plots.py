@@ -718,14 +718,14 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("generating resampled datasets")
             if dataset_name == 'Adult':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult_test")
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face_test")
             else:
                 generate_resampled_datasets(dataset, self.n_trials, self.results_dir)
             print("Done generating resampled datasets")
@@ -883,14 +883,14 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("checking for resampled datasets")
             if dataset_name == 'Adult':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult_test")
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face")
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face_test")
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face_test")
             print("Done checking for resampled datasets")
             print()
 

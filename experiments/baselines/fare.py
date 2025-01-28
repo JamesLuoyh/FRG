@@ -421,7 +421,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     eodd_test = utils.equalized_odds(proba_test, s_test, **kwargs)
                     diff_downstream_preference = {'auc': auc, 'acc':acc, 'f1':f1, 'dp':dp_test, 'eopp':eopp_test, 'eodd':eodd_test}
                     
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_health_downstream_2.csv'
+                    result_log = f'./SeldonianExperimentResults/fare_health_downstream_2.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,max_k,min_ni,alpha")
@@ -449,7 +449,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     eodd_test = utils.equalized_odds(proba_test, y_1_test, **kwargs)
                     diff_downstream_preference = {'auc': auc, 'acc':acc, 'f1':f1, 'dp':dp_test, 'eopp':eopp_test, 'eodd':eodd_test}
                     
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_health_downstream_3.csv'
+                    result_log = f'./SeldonianExperimentResults/fare_health_downstream_3.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,max_k,min_ni,alpha")
@@ -482,7 +482,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     print(dp_ub)
                     print('TREE DONE.')
                     test_performance['dp_ub'] = dp_ub[0]
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_health_downstream_1.csv'
+                    result_log = f'./SeldonianExperimentResults/fare_health_downstream_1.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,dp_ub,max_k,min_ni,alpha")

@@ -17,4 +17,4 @@ if __name__ == '__main__':
     fig = plot_gradient_descent(solution_dict,
         primary_objective_name='vae loss',
         save=False)
-    plt.savefig(f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/{log_id}.png')
+    plt.savefig(f'./SeldonianExperimentResults/{log_id}.png')

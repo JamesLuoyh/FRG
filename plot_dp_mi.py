@@ -1,7 +1,7 @@
 import pandas as pd
 
-df = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/dp_vs_mi.csv')
-df2 = pd.read_csv('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/dp_vs_mi_i2.csv')
+df = pd.read_csv('./SeldonianExperimentResults/dp_vs_mi.csv')
+df2 = pd.read_csv('./SeldonianExperimentResults/dp_vs_mi_i2.csv')
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,4 +30,4 @@ plt.yscale('log')
 
 plt.xlabel('$\Delta_{DP}$')
 # plt.ylabel("Y-axis")
-plt.savefig('/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/dp_vs_mi.pdf', format="pdf")
+plt.savefig('./SeldonianExperimentResults/dp_vs_mi.pdf', format="pdf")

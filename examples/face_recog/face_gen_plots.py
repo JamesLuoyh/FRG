@@ -264,7 +264,7 @@ if __name__ == "__main__":
 
     performance_metric="dp"
 
-    results_base_dir = f"/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults"
+    results_base_dir = f"./SeldonianExperimentResults"
     dataset = FACE
     face_advdp_example(
         spec_rootdir="./SeldonianExperimentSpecs/advdp/spec",

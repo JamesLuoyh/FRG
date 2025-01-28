@@ -724,18 +724,18 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("generating resampled datasets")
             if dataset_name == 'adults':
                 # if validation:
-                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adults", self.spec.frac_data_in_safety)
+                generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adults", self.spec.frac_data_in_safety)
                 # else:
-                #     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
+                #     generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
             if dataset_name == 'health':
-                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
+                generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
             if dataset_name == 'income':
-                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/income", self.spec.frac_data_in_safety)
+                generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/income", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
             else:
                 generate_resampled_datasets(dataset, self.n_trials, self.results_dir)
             print("Done generating resampled datasets")
@@ -826,18 +826,18 @@ class SupervisedPlotGenerator(PlotGenerator):
             print("checking for resampled datasets")
             if dataset_name == 'adults':
                 # if validation:
-                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adults", self.spec.frac_data_in_safety)
+                generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adults", self.spec.frac_data_in_safety)
                 # else:
-                #     generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
+                #     generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Adult_test", self.spec.frac_data_in_safety)
             if dataset_name == 'health':
-                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
+                generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/health", self.spec.frac_data_in_safety)
             if dataset_name == 'income':
-                generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/income", self.spec.frac_data_in_safety)
+                generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/income", self.spec.frac_data_in_safety)
             elif dataset_name == 'Face':
                 if validation:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
                 else:
-                    generate_resampled_datasets(dataset, self.n_trials, "/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
+                    generate_resampled_datasets(dataset, self.n_trials, "./SeldonianExperimentResults/Face", self.spec.frac_data_in_safety)
             print("Done checking for resampled datasets")
             print()
 

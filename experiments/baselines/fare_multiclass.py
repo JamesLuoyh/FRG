@@ -390,7 +390,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
 
                     # diff_downstream_preference = {'auc': auc, 'acc':acc, 'f1':f1, 'dp':dp_test, 'dp':dp_test, 'dp':dp_test}
                     
-                    # result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_income_downstream_2.csv'
+                    # result_log = f'./SeldonianExperimentResults/fare_income_downstream_2.csv'
                     # if not os.path.isfile(result_log):
                     #     with open(result_log, "w") as myfile:
                     #         myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,max_k,min_ni,alpha")
@@ -417,7 +417,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     dp_test = utils.demographic_parity(proba_test, y_1_test, **kwargs)
                     diff_downstream_preference = {'auc': auc, 'acc':acc, 'f1':f1, 'dp':dp_test, 'dp':dp_test, 'dp':dp_test}
                     
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_income_downstream_3.csv'
+                    result_log = f'./SeldonianExperimentResults/fare_income_downstream_3.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,max_k,min_ni,alpha")
@@ -483,7 +483,7 @@ class PytorchFARE(SupervisedPytorchBaseModel):
                     # print(dp_ub)
                     # print('TREE DONE.')
                     test_performance['dp_ub'] = total_dpub#dp_ub[0]
-                    result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/fare_income_downstream_1.csv'
+                    result_log = f'./SeldonianExperimentResults/fare_income_downstream_1.csv'
                     if not os.path.isfile(result_log):
                         with open(result_log, "w") as myfile:
                             myfile.write("param_search_id,auc,acc,f1,dp,eopp,eodd,dp_ub,max_k,min_ni,alpha")

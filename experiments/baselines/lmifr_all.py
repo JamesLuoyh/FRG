@@ -336,7 +336,7 @@ class PytorchLMIFR(SupervisedPytorchBaseModel):
                                             # y_pred_all = vae_loss, mi_sz, y_prob.detach().cpu().numpy()
                                             # delta_DP = utils.demographic_parity(y_pred_all, None, **kwargs)
                                             # auc = roc_auc_score(y_valid_label.numpy(), y_prob.detach().cpu().numpy())
-                                            result_log = f'/work/pi_pgrabowicz_umass_edu/yluo/SeldonianExperimentResults/lmifr_income_supervised.csv'
+                                            result_log = f'./SeldonianExperimentResults/lmifr_income_supervised.csv'
                                             if not os.path.isfile(result_log):
                                                 with open(result_log, "w") as myfile:
                                                     myfile.write("param_search_id,auc,delta_dp,mi,mi_upper,epsilon_elbo,epsilon_adv,lagrangian_elbo,lagrangian,lr,epoch,adv_rounds,dropout")
